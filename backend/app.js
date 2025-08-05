@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const memberRouter = require('./routes/memberRouter');
 const session = require('express-session')
-const bodyParser = require('body-parser');
 const medicationRoutes = require('./routes/medicationRoutes');
 
 const app = express();
@@ -21,7 +20,7 @@ app.use(session({
 app.use('/api/users', memberRouter);
 
 // JSON 파싱 미들웨어
-app.use(bodyParser.json());
+app.use(express.json());
 
 // 라우터 등록
 app.use('/api/medication', medicationRoutes);

@@ -1,44 +1,51 @@
-const mysql = require('mysql2/promise');
+const sequelize = require('../db/sequelize');
+const User = require('../db/Users');
+const Medications = require('../db/Medications');
+const Medication_schedule = require('../db/Medication_schedule');
+const Health_alerts = require('../db/Health_alerts');
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-});
-
-async function getUserById(id) {
-  const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
-  return rows[0]; // 없으면 undefined
+// 탈퇴하지 않은 유저만 조회
+async function getUserById(user_id) {
+  const user = await User.findOne({ 
+    where: { 
+      user_id, 
+      delyn: 'N' 
+    } 
+  });
+  return user?.toJSON();
 }
 
-async function createUser({ id, pw, name, phone }) {
-  await pool.query('INSERT INTO users (id, pw, name, phone) VALUES (?, ?, ?, ?)', [id, pw, name, phone]);
+// 회원 생성
+async function createUser(userData) {
+  await User.create(userData);
 }
 
-async function removeMember(id){
-  const conn = await pool.getConnection();
+// 회원 탈퇴 (논리 삭제 방식)
+async function removeMember(user_id) {
+  const t = await sequelize.transaction();
+
   try {
-    await conn.beginTransaction();  // 트랜잭션 시작
+    // delyn 플래그를 'Y'로 변경 (유저만)
+    const result = await User.update(
+      { delyn: 'Y' },
+      { where: { user_id }, transaction: t }
+    );
 
-    await conn.execute('DELETE FROM medication_schedule WHERE user_id = ?', [id]);
-    await conn.execute('DELETE FROM medications WHERE user_id = ?', [id]);
-
-    const [result] = await conn.execute('DELETE FROM users WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      console.warn(`삭제 실패: id ${id}가 존재하지 않음`);
-      await conn.rollback();  // 롤백 처리
+    if (result[0] === 0) {
+      console.warn(`탈퇴 실패: user_id ${user_id}가 존재하지 않거나 이미 탈퇴`);
+      await t.rollback();
       return 0;
     }
-    await conn.commit();
 
-    return result.affectedRows;
+    // 다른 테이블 데이터도 논리 삭제하려면 여기에 추가
+    // 예: Medication_schedule, Medications 등
+
+    await t.commit();
+    return result[0]; // 업데이트된 row 수 (1이면 성공)
   } catch (err) {
-    console.error('삭제 중 오류 발생:', err);
-    await conn.rollback();
+    console.error('탈퇴 처리 중 오류 발생:', err);
+    await t.rollback();
     throw err;
-  } finally {
-    conn.release();
   }
 }
 
