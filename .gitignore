@@ -17,7 +17,7 @@ Thumbs.db              # Windows 썸네일 캐시
 temp/
 
 # 의존성 관리 도구 관련
-node_modules/          # Node.js 패키지
+backend/node_modules       # Node.js 패키지
 vendor/                # Composer (PHP) 의존성
 target/                # Maven (Java) 빌드 디렉토리
 
