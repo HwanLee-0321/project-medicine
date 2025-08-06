@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { BarChart, LineChart } from 'react-native-chart-kit';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icons from '@expo/vector-icons/MaterialIcons';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -64,13 +64,13 @@ export default function App() {
 
           <Text style={styles.sectionTitle}>건강 이상 징후</Text>
           <View style={styles.alertBox}>
-            <MaterialIcons name="warning" size={20} color="red" />
+            <Icons name="warning" size={20} color="red" />
             <Text style={{ marginLeft: 5 }}>최근 복약 거부 기록 있음</Text>
           </View>
 
           <Text style={styles.sectionTitle}>미복약 내역</Text>
           <View style={styles.alertBox}>
-            <MaterialIcons name="notifications" size={20} color="orange" />
+            <Icons name="notifications" size={20} color="orange" />
             <Text style={{ marginLeft: 5 }}>7/28 아침 약 미복용</Text>
           </View>
 

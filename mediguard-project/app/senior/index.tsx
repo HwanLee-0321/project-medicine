@@ -5,12 +5,12 @@ import { SafeAreaView, StyleSheet, ScrollView, TouchableOpacity, Text } from 're
 import { useRouter } from 'expo-router';
 
 // 하위 컴포넌트들
-import NextMedication from '../components/NextMedication';
-import CurrentTime from '../components/CurrentTime';
+import NextMedication from './components/NextMedication';
+import CurrentTime from './components/CurrentTime';
 // import Mascot from '../components/Mascot';
-import VoiceGuide from '../components/VoiceGuide';
-import OCRCapture from '../components/OCRCapture';
-import ReminderHandler from '../components/ReminderHandler';
+import VoiceGuide from './components/VoiceGuide';
+import OCRCapture from './components/OCRCapture';
+import ReminderHandler from './components/ReminderHandler';
 // import SettingsShortcut from '../components/SettingsShortcut';
 
 const Home = () => {
