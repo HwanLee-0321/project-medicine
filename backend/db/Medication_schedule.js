@@ -5,6 +5,7 @@ const User = require('./Users');
 const MedicationSchedule = sequelize.define('MedicationSchedule', {
   id: {
     type: DataTypes.INTEGER,
+    allowNull: false,
     primaryKey: true,
     autoIncrement: true,
   },

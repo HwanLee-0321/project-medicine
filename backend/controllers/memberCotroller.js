@@ -4,9 +4,11 @@ const jwt = require('jsonwebtoken');
 
 // 회원가입
 const signup = async (req, res) => {
-  const { user_id, user_pw, elder_nm, guard_mail, elder_birth, birth_type, sex } = req.body;
+  const { user_id, user_pw, elder_nm, guard_mail, elder_birth, birth_type, sex, is_elderly } = req.body;
 
-  if (!user_id || !user_pw || !elder_nm || !guard_mail || !elder_birth || !birth_type || !sex) {
+  if (user_id === undefined || user_pw === undefined || elder_nm === undefined ||
+  guard_mail === undefined || elder_birth === undefined ||
+  birth_type === undefined || sex === undefined || is_elderly === undefined) {
     return res.status(400).json({ message: '모든 항목을 입력하세요' });
   }
 
@@ -24,6 +26,7 @@ const signup = async (req, res) => {
       elder_birth,
       birth_type,
       sex,
+      is_elderly,
       delyn: 'N'  // 논리 삭제 기본값
     });
 
