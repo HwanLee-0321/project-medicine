@@ -39,7 +39,7 @@ const Home = () => {
                 {/* 설정 화면 바로가기 (글씨, 음성, 식사시간 등) */}
                 <TouchableOpacity
                     style={[styles.button, { backgroundColor: '#9E9E9E', marginTop: 20 }]}
-                    onPress={() => router.push('/components/SettingsShortcut')}
+                    onPress={() => router.push('./components/SettingsShortcut')}
                 >
                     <Text style={styles.buttonText}>⚙️설정 화면으로</Text>
                 </TouchableOpacity>
