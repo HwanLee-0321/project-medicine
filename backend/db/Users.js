@@ -42,7 +42,12 @@ const User = sequelize.define('User', {
   delyn: {
     type: DataTypes.STRING(1),
     allowNull: true,
-  }
+  },
+  first_login: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: false
+}
 }, {
   tableName: 'users',
   timestamps: false

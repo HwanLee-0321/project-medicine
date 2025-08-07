@@ -3,6 +3,7 @@ const express = require('express');
 const memberRouter = require('./routes/memberRouter');
 const session = require('express-session')
 const medicationRoutes = require('./routes/medicationRoutes');
+const healthRoutes = require('./routes/healthRoutes');
 
 const app = express();
 app.use(express.json());
@@ -24,6 +25,8 @@ app.use(express.json());
 
 // 라우터 등록
 app.use('/api/medication', medicationRoutes);
+
+app.use('/api/alerts', healthRoutes)
 
 app.listen(process.env.PORT || 3000, () => {
   console.log('Server running...');

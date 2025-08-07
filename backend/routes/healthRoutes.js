@@ -3,7 +3,7 @@ const router = express.Router();
 const healthController = require('../controllers/healthController');
 
 // POST: 건강 이상 기록
-router.post('/api/alerts', healthController.createAlert);
+router.post('/', healthController.createAlert);
 
 // GET: 전체 기록
 router.get('/alerts', healthController.getAlerts);

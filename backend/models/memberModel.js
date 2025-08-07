@@ -12,12 +12,12 @@ async function getUserById(user_id) {
       delyn: 'N' 
     } 
   });
-  return user?.toJSON();
+  return user;  // Sequelize 모델 그대로 반환
 }
 
 // 회원 생성
 async function createUser(userData) {
-  await User.create(userData);
+  return await User.create(userData);
 }
 
 // 회원 탈퇴 (논리 삭제 방식)
@@ -25,7 +25,6 @@ async function removeMember(user_id) {
   const t = await sequelize.transaction();
 
   try {
-    // delyn 플래그를 'Y'로 변경 (유저만)
     const result = await User.update(
       { delyn: 'Y' },
       { where: { user_id }, transaction: t }
@@ -37,11 +36,10 @@ async function removeMember(user_id) {
       return 0;
     }
 
-    // 다른 테이블 데이터도 논리 삭제하려면 여기에 추가
-    // 예: Medication_schedule, Medications 등
+    // 필요한 경우 다른 테이블도 논리 삭제 처리 가능
 
     await t.commit();
-    return result[0]; // 업데이트된 row 수 (1이면 성공)
+    return result[0];
   } catch (err) {
     console.error('탈퇴 처리 중 오류 발생:', err);
     await t.rollback();
@@ -49,4 +47,22 @@ async function removeMember(user_id) {
   }
 }
 
-module.exports = { getUserById, createUser, removeMember };
+// 첫 로그인 처리
+async function updateUserFirstLoginAt(user_id) {
+  await User.update(
+    { first_login: 1 },
+    {
+      where: {
+        user_id,
+        first_login: 0,  // 아직 첫 로그인이 아닌 경우에만 업데이트
+      }
+    }
+  );
+}
+
+module.exports = {
+  getUserById,
+  createUser,
+  removeMember,
+  updateUserFirstLoginAt
+};

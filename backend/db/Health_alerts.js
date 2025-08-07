@@ -24,7 +24,7 @@ const Health_alert = sequelize.define('HealthAlert', {
   created_at: {
     type: DataTypes.DATE,
     allowNull: true,
-    defaultValue: null,
+    defaultValue: DataTypes.NOW,
   },
 }, {
   tableName: 'health_alerts',

@@ -1,4 +1,4 @@
-const { HealthAlert } = require('../models');
+const HealthAlert = require('../db/Health_alerts');
 
 // 건강 이상 징후 저장
 exports.createAlert = async (req, res) => {
