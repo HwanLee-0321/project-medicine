@@ -10,7 +10,7 @@ export default function RoleSelect() {
 
       <TouchableOpacity
         style={[styles.roleButton, { backgroundColor: '#2196F3' }]}
-        onPress={() => router.push('/senior/homeMock')}
+        onPress={() => router.push('/senior')}
       >
         <Text style={styles.buttonText}>고령자</Text>
       </TouchableOpacity>

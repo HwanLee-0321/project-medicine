@@ -1,22 +1,20 @@
-import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 
-export default function Index() {
+export default function LoginScreen() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [id, setId] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    if (username && password) {
-      router.push('/role'); // 역할 선택 화면으로 이동
-    } else {
-      alert('아이디와 비밀번호를 입력해주세요!');
+    if (!id || !password) {
+      alert('아이디와 비밀번호를 입력해주세요.');
+      return;
     }
-  };
 
-  const handleSignup = () => {
-    router.push('/signup');
+    // 예시용: 바로 setup으로 이동
+    router.push('/setup');
   };
 
   return (
@@ -26,69 +24,37 @@ export default function Index() {
       <TextInput
         style={styles.input}
         placeholder="아이디"
-        value={username}
-        onChangeText={setUsername}
+        value={id}
+        onChangeText={setId}
       />
       <TextInput
         style={styles.input}
         placeholder="비밀번호"
+        secureTextEntry
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
       />
 
-      <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>로그인</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={handleSignup}>
-          <Text style={styles.buttonText}>회원가입</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>로그인</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => router.push('/signup')}>
+        <Text style={styles.link}>회원가입</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 32,
-    textAlign: 'center',
-  },
+  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#fff' },
+  title: { fontSize: 28, fontWeight: 'bold', marginBottom: 40, textAlign: 'center' },
   input: {
-    height: 48,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-    fontSize: 16,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    borderWidth: 1, borderColor: '#ccc', padding: 10, marginBottom: 15, borderRadius: 8,
   },
   button: {
-    flex: 1,
-    backgroundColor: '#2196F3',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
+    backgroundColor: '#4E88FF', padding: 15, borderRadius: 8, alignItems: 'center',
   },
-  signupButton: {
-    backgroundColor: '#2196F3',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  link: { marginTop: 15, color: '#4E88FF', textAlign: 'center' },
 });
