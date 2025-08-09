@@ -10,14 +10,14 @@ export default function RoleSelect() {
 
       <TouchableOpacity
         style={[styles.roleButton, { backgroundColor: '#2196F3' }]}
-        onPress={() => router.push('/senior')}
+        onPress={() => router.push('./features/senior')}
       >
         <Text style={styles.buttonText}>고령자</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.roleButton, { backgroundColor: '#2196F3' }]}
-        onPress={() => router.push('/caregiver')}
+        onPress={() => router.push('./features/caregiver')}
       >
         <Text style={styles.buttonText}>보호자</Text>
       </TouchableOpacity>
