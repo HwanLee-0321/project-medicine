@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import Dashboard from './components/Dashboard';
 import FunctionMain from './components/Functionmain';
 import Calendar from './components/Calendar';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'Dashboard' | 'Function' | 'Calendar'>('Dashboard');
+  const [currentScreen, setCurrentScreen] = useState<'Function' | 'Calendar'>('Function');
 
   return (
     <View style={{ flex: 1 }}>
       {/* 탭 메뉴 */}
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'Dashboard' && styles.activeTab]}
-          onPress={() => setCurrentScreen('Dashboard')}
-        >
-          <Text style={styles.tabText}></Text>
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.tabButton, currentScreen === 'Function' && styles.activeTab]}
           onPress={() => setCurrentScreen('Function')}
@@ -26,7 +18,8 @@ export default function App() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          
+          style={[styles.tabButton, currentScreen === 'Calendar' && styles.activeTab]}
+          onPress={() => setCurrentScreen('Calendar')}
         >
           <Text style={styles.tabText}></Text>
         </TouchableOpacity>
@@ -34,8 +27,7 @@ export default function App() {
 
       {/* 선택된 화면 */}
       <View style={styles.screenContainer}>
-        {currentScreen === 'Dashboard' && <Dashboard goToFunction={() => setCurrentScreen('Function')} />}
-        {currentScreen === 'Function' && <FunctionMain goToDashboard={() => setCurrentScreen('Dashboard')} />}
+        {currentScreen === 'Function' && <FunctionMain />}
         {currentScreen === 'Calendar' && <Calendar />}
       </View>
     </View>
