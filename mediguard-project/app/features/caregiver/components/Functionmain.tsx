@@ -18,7 +18,7 @@ import { LineChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';  // expo-router import
 
 // 외부 컴포넌트 임포트 (경로 맞게 조정)
-import CalendarTab from './Calendar';
+import CalendarTab from '../../../Calendar';
 import MedicationTimeTab from './MedicationTime';
 import NotificationSettingTab from './NotificationSetting';
 

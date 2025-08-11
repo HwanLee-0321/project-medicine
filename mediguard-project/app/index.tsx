@@ -85,6 +85,18 @@ export default function LoginScreen() {
           title="회원가입"
           onPress={() => router.push('/signup')}
         />
+
+        <TouchableOpacity
+          onPress={() => router.push('/features/senior')}
+        >
+          <Text>고령자로 이동</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push('/features/caregiver')}
+        >
+          <Text>보호자로 이동</Text>
+        </TouchableOpacity>
+
       </View>
     </ScreenContainer>
   );

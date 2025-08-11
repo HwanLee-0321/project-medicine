@@ -1,78 +1,167 @@
 // screens/Home.tsx
-
 import React from 'react';
-import { SafeAreaView, StyleSheet, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { SafeAreaView, StyleSheet, TouchableOpacity, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
-// 하위 컴포넌트들
-import NextMedication from './components/NextMedication';
+// 하위 컴포넌트
 import CurrentTime from './components/CurrentTime';
-// import Mascot from '../components/Mascot';
-// import VoiceGuide from './components/VoiceGuide';
-import OCRCapture from './components/OCRCapture';
-import ReminderHandler from './components/ReminderHandler';
-// import SettingsShortcut from '../components/SettingsShortcut';
+import NextMedication from './components/NextMedication'; 
+import { colors } from '@styles/colors';
 
-const Home = () => {
-    const router = useRouter();
-    return (
-        <SafeAreaView style={styles.safeArea}>
-            <ScrollView contentContainerStyle={styles.container}>
-                {/* 현재 시간 표시 */}
-                <CurrentTime />
+// 경로는 프로젝트 구조에 맞게 조정
+const mascot = require('@assets/images/mascot.png');
 
-                {/* 마스코트 캐릭터 (추후 애니메이션 포함) 만들기 싫음 */}
-                {/* <Mascot /> */}
+export default function Home() {
+  const router = useRouter();
 
-                {/* 다음 복약 시간 안내 */}
-                <NextMedication />
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* 1) 현재 시간 */}
+        <CurrentTime />
 
-                {/* 복약 알림 수신 → 안내 흐름 */}
-                <ReminderHandler />
+        {/* 2) 캐릭터 + 말풍선 */}
+        <View style={styles.mascotBlock}>
+          <Image source={mascot} style={styles.mascot} resizeMode="contain" />
 
-                {/* OCR 약봉지 촬영 유도 버튼 */}
-                <OCRCapture />
+          {/* 말풍선 (버튼 폭과 동일: width 100%) */}
+          <View style={styles.speechWrap}>
+            <View style={styles.speechBubble}>
+              <Text style={styles.bubbleText}>대화를 원하시면{'\n'}저를 눌러주세요.</Text>
+            </View>
+            {/* 말풍선 꼬리 */}
+            <View style={styles.tail} />
+          </View>
+        </View>
 
-                {/* 음성 안내 및 건강 상태 대화 */}
-                {/* <VoiceGuide /> */}
+        {/* 3) 다음 복약 시간: 주황/피치 톤 카드 하나만 사용 */}
+        <View style={styles.nextCard}>
+          <View style={{ height: 8 }} />
+          {/* NextMedication은 시간 텍스트만 렌더하도록(내부 카드 제거) */}
+          <NextMedication />
+        </View>
 
-                {/* 설정 화면 바로가기 (글씨, 음성, 식사시간 등) */}
-                <TouchableOpacity
-                    style={[styles.button, { backgroundColor: '#9E9E9E', marginTop: 20 }]}
-                    onPress={() => router.push('./components/SettingsShortcut')}
-                >
-                    <Text style={styles.buttonText}>⚙️설정 화면으로</Text>
-                </TouchableOpacity>
-            </ScrollView>
-        </SafeAreaView>
-    );
-};
+        {/* 4) 건강 이력 달력 버튼 */}
+        <TouchableOpacity
+          style={[styles.button, styles.secondaryButton]}
+          onPress={() => router.push('/Calendar')}
+          accessibilityLabel="건강 이력 달력으로 이동"
+        >
+          <Text style={[styles.buttonText, styles.secondaryButtonText]}>건강 이력 달력</Text>
+        </TouchableOpacity>
+
+        {/* 5) 설정 버튼 */}
+        <TouchableOpacity
+          style={[styles.button, styles.settingsButton]}
+          onPress={() => router.push('./components/SettingsShortcut')}
+          accessibilityLabel="설정 화면으로 이동"
+        >
+          <Text style={styles.buttonText}>⚙️ 설정</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const RADIUS = 18;
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: '#fff',
-        paddingTop: 30, // 원하는 만큼 조정
-    },
-    container: {
-        paddingVertical: 40,
-        paddingHorizontal: 20,
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        gap: 30,
-    },
-    button: {
-        backgroundColor: '#2196F3',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 10,
-        marginTop: 8,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#FFF',
-        fontWeight: '600',
-    },
-});
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center', // 세로 중앙
+    alignItems: 'center',     // 가로 중앙
+    gap: 22,
+    paddingHorizontal: 20,
+  },
 
-export default Home;
+  // 캐릭터 + 말풍선
+  mascotBlock: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 12,
+  },
+  mascot: {
+    width: 128,   // 살짝 더 크게
+    height: 128,
+  },
+  speechWrap: {
+    position: 'relative',
+    width: '100%',        // 버튼과 동일 폭
+    alignItems: 'center',
+  },
+  speechBubble: {
+    width: '100%',        // 버튼과 동일 폭
+    backgroundColor: colors.panel,
+    borderRadius: RADIUS,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#00000010',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  // 꼬리: 말풍선 우측 아래에서 캐릭터 방향으로
+  tail: {
+    position: 'absolute',
+    right: 36,    // 필요하면 미세 조정
+    top: -10,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderBottomWidth: 12,
+    borderStyle: 'solid',
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: colors.panel,
+  },
+  bubbleText: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
+  // 다음 복약 카드(한 겹)
+  nextCard: {
+    width: '100%',
+    backgroundColor: colors.panel, // 주황/피치 톤 카드 하나
+    borderRadius: RADIUS * 1.2,
+    paddingVertical: 22,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#00000010',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    alignItems: 'center',
+  },
+  nextTitle: {
+    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  // 버튼 공통
+  button: {
+    width: '100%',               // 버튼 폭 = 말풍선 폭
+    borderRadius: RADIUS * 1.2,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: { color: colors.white, fontSize: 16, fontWeight: '800' },
+
+  secondaryButton: { backgroundColor: colors.secondary },
+  secondaryButtonText: { color: colors.onSecondary },
+
+  settingsButton: { backgroundColor: colors.primary },
+});

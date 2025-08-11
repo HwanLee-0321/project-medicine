@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import FunctionMain from './components/Functionmain';
-import Calendar from './components/Calendar';
+import Calendar from '@app/Calendar';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'Function' | 'Calendar'>('Function');

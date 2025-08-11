@@ -11,7 +11,7 @@ export default function RoleSelect() {
 
       <TouchableOpacity
         style={[styles.roleButton, styles.primaryButton]}
-        onPress={() => router.push('./features/senior')}
+        onPress={() => router.replace('./features/senior')}
         accessibilityLabel="고령자 화면으로 이동"
       >
         <Text style={styles.primaryButtonText}>고령자</Text>
@@ -19,7 +19,7 @@ export default function RoleSelect() {
 
       <TouchableOpacity
         style={[styles.roleButton, styles.secondaryButton]}
-        onPress={() => router.push('./features/caregiver')}
+        onPress={() => router.replace('./features/caregiver')}
         accessibilityLabel="보호자 화면으로 이동"
       >
         <Text style={styles.secondaryButtonText}>보호자</Text>
