@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
 
 export default function Dashboard({ goToFunction }: any) {
   return (
@@ -33,25 +32,28 @@ export default function Dashboard({ goToFunction }: any) {
         </View>
       </View>
 
-      {/* 차트 */}
-      <LineChart
-        data={{
-          labels: ["월", "화", "수", "목", "금"],
-          datasets: [{ data: [3, 2, 5, 4, 2] }]
-        }}
-        width={Dimensions.get('window').width - 40}
-        height={220}
-        chartConfig={{
-          backgroundColor: '#fff',
-          backgroundGradientFrom: '#fff',
-          backgroundGradientTo: '#fff',
-          decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`,
-          labelColor: () => '#000',
-        }}
-        bezier
-        style={styles.chart}
-      />
+      {/* 차트 제목 + 차트 */}
+      <View style={styles.chartContainer}>
+        <Text style={styles.chartTitle}>주간 복약횟수</Text>
+        <LineChart
+          data={{
+            labels: ["월", "화", "수", "목", "금"],
+            datasets: [{ data: [3, 2, 5, 4, 2] }]
+          }}
+          width={Dimensions.get('window').width - 40}
+          height={220}
+          chartConfig={{
+            backgroundColor: '#fff',
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(0, 0, 255, ${opacity})`,
+            labelColor: () => '#000',
+          }}
+          bezier
+          style={styles.chart}
+        />
+      </View>
 
       {/* 알림 박스들 */}
       <View style={styles.alertBox}>
@@ -60,39 +62,19 @@ export default function Dashboard({ goToFunction }: any) {
       </View>
       <View style={styles.alertBox}>
         <Text style={styles.alertText}>🚨 이상징후 감지</Text>
-        <Text style={styles.alertSubText}>심박수 급상승 (8월 6일)</Text>
-      </View>
-
-      {/* 경고 아이콘들 */}
-      <View style={styles.iconRow}>
-        <Image 
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1827/1827933.png' }} 
-          style={styles.icon} 
-        />
-        <Image 
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1827/1827933.png' }} 
-          style={styles.icon} 
-        />
-        <Image 
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1827/1827933.png' }} 
-          style={styles.icon} 
-        />
-      </View>
-
-      {/* 수정 아이콘 */}
-      <View style={styles.editRow}>
-        <Image 
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1827/1827933.png' }} 
-          style={styles.editIcon} 
-        />
-        <Text style={styles.editText}>알림 설정 수정</Text>
+        <Text style={styles.alertSubText}>어지러움 호소 (8월 6일)</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', padding: 20 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff', 
+    padding: 20,
+    paddingTop: 80, // 화면을 아래로 내림
+  },
   tabContainer: { flexDirection: 'row', marginBottom: 10 },
   activeTab: { flex: 1, backgroundColor: 'green', padding: 10, alignItems: 'center' },
   inactiveTab: { flex: 1, backgroundColor: '#ddd', padding: 10, alignItems: 'center' },
@@ -109,8 +91,20 @@ const styles = StyleSheet.create({
   },
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
   profileText: { fontSize: 16 },
-  chart: { borderRadius: 10, marginVertical: 10 },
-
+  
+  chartContainer: {
+    marginBottom: 20,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    color: '#000',
+  },
+  chart: { 
+    borderRadius: 10, 
+  },
+  
   alertBox: {
     backgroundColor: '#fffbe6',
     borderWidth: 1,
@@ -127,25 +121,6 @@ const styles = StyleSheet.create({
   },
   alertSubText: {
     fontSize: 15,
-    color: '#555',
-  },
-
-  iconRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-  icon: { width: 30, height: 30 },
-
-  editRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 30,
-  },
-  editIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 6,
-  },
-  editText: {
-    fontSize: 16,
     color: '#555',
   },
 });
