@@ -13,6 +13,16 @@ const to2 = (n: number) => n.toString().padStart(2, '0');
 
 type TimePair = { hour: string; minute: string };
 
+// ✅ 컴포넌트 바깥으로 이동(정적 참조 보장)
+const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+  Platform.OS === 'ios' ? (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={48}>
+      {children}
+    </KeyboardAvoidingView>
+  ) : (
+    <View style={{ flex: 1 }}>{children}</View>
+  );
+
 export default function SetupScreen() {
   const [showOverlay, setShowOverlay] = useState(true);
 
@@ -46,21 +56,11 @@ export default function SetupScreen() {
     return <IntroOverlay onFinish={handleOverlayEnd} userName="000" />;
   }
 
-  // iOS는 키보드 회피, Android는 기본 View
-  const Wrapper: React.FC<{children: React.ReactNode}> = ({ children }) =>
-    Platform.OS === 'ios' ? (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={48}>
-        {children}
-      </KeyboardAvoidingView>
-    ) : (
-      <View style={{ flex: 1 }}>{children}</View>
-    );
-
   return (
     <Wrapper>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps="always"   // ✅ 탭 시 포커스 유지
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       >
         <View style={styles.inner}>
@@ -96,15 +96,41 @@ function TimeInput({
   value: TimePair;
   onChange: (t: TimePair) => void;
 }) {
+  // 시 입력
   const onHour = (txt: string) => {
     const d = onlyDigits(txt).slice(0, 2);
-    const n = d === '' ? '' : to2(clampNum(Number(d), 0, 23));
-    onChange({ ...value, hour: n.slice(-2) });
+    if (d.length === 0) return onChange({ ...value, hour: '' });
+    if (d.length === 1) {
+      const first = Math.min(Number(d), 2);            // 0~2
+      return onChange({ ...value, hour: String(first) });
+    }
+    const num = clampNum(Number(d), 0, 23);
+    onChange({ ...value, hour: num.toString() });
   };
+
+  // 분 입력
   const onMinute = (txt: string) => {
     const d = onlyDigits(txt).slice(0, 2);
-    const n = d === '' ? '' : to2(clampNum(Number(d), 0, 59));
-    onChange({ ...value, minute: n.slice(-2) });
+    if (d.length === 0) return onChange({ ...value, minute: '' });
+    if (d.length === 1) {
+      const first = Math.min(Number(d), 5);            // 0~5
+      return onChange({ ...value, minute: String(first) });
+    }
+    const num = clampNum(Number(d), 0, 59);
+    onChange({ ...value, minute: num.toString() });
+  };
+
+  // 포커스 아웃 시 두 자리 보정
+  const onHourBlur = () => {
+    if (value.hour === '') return;
+    const num = clampNum(Number(value.hour), 0, 23);
+    onChange({ ...value, hour: num.toString().padStart(2, '0') });
+  };
+
+  const onMinuteBlur = () => {
+    if (value.minute === '') return;
+    const num = clampNum(Number(value.minute), 0, 59);
+    onChange({ ...value, minute: num.toString().padStart(2, '0') });
   };
 
   return (
@@ -115,12 +141,14 @@ function TimeInput({
         style={[styles.input, styles.hmInput]}
         value={value.hour}
         onChangeText={onHour}
+        onBlur={onHourBlur}
         placeholder="HH"
         placeholderTextColor={colors.textSecondary}
         keyboardType="number-pad"
-        maxLength={2}
         inputMode="numeric"
+        maxLength={2}
         textAlign="center"
+        blurOnSubmit={false}                 // ✅ 포커스 유지 보조
         accessibilityLabel={`${a11yLabel} - 시`}
       />
       <Text style={styles.colon}>:</Text>
@@ -128,12 +156,14 @@ function TimeInput({
         style={[styles.input, styles.hmInput]}
         value={value.minute}
         onChangeText={onMinute}
+        onBlur={onMinuteBlur}
         placeholder="MM"
         placeholderTextColor={colors.textSecondary}
         keyboardType="number-pad"
-        maxLength={2}
         inputMode="numeric"
+        maxLength={2}
         textAlign="center"
+        blurOnSubmit={false}                 // ✅ 포커스 유지 보조
         accessibilityLabel={`${a11yLabel} - 분`}
       />
     </View>
@@ -142,11 +172,11 @@ function TimeInput({
 
 const styles = StyleSheet.create({
   scrollContent: {
-    flex: 1,                     // ✅ 화면 높이 채움
-    justifyContent: 'center',    // ✅ 세로 중앙 정렬
-    alignItems: 'center',        // 가로 중앙
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: colors.background,
-    paddingBottom: 120,          // 마스코트/키보드 여유
+    paddingBottom: 120,
   },
   inner: {
     width: '100%',

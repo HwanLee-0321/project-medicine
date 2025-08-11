@@ -1,5 +1,7 @@
 // app/ocr.tsx
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'expo-router';
+
 import {
   SafeAreaView,
   ScrollView,
@@ -26,7 +28,19 @@ const onlyDigits = (s: string) => s.replace(/\D/g, '');
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const R = 14;
 
+/** ✅ 컴포넌트 바깥으로 분리: 렌더마다 새로 안 만들어져서 포커스 안 날아감 */
+const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
+  Platform.OS === 'ios' ? (
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={48}>
+      {children}
+    </KeyboardAvoidingView>
+  ) : (
+    <View style={{ flex: 1 }}>{children}</View>
+  );
+
 export default function OCRScreen() {
+  const router = useRouter();
+
   // 4행 기본 제공(빈값)
   const [rows, setRows] = useState<Row[]>(
     Array.from({ length: 4 }).map((_, i) => ({
@@ -75,22 +89,13 @@ export default function OCRScreen() {
     setRows(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
   };
 
-  // iOS에서 키보드 회피
-  const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
-    Platform.OS === 'ios' ? (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={48}>
-        {children}
-      </KeyboardAvoidingView>
-    ) : (
-      <View style={{ flex: 1 }}>{children}</View>
-    );
-
   return (
     <SafeAreaView style={styles.safe}>
       <Wrapper>
         <ScrollView
           contentContainerStyle={styles.container} // 가운데 정렬 핵심
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"       // ✅ 포커스 유지 보강
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -124,6 +129,7 @@ export default function OCRScreen() {
                         placeholderTextColor={colors.textSecondary}
                         accessibilityLabel="약 이름 입력"
                         returnKeyType="done"
+                        blurOnSubmit={false}            // ✅ 포커스 유지
                       />
                     ) : (
                       <Text style={[styles.cellText, styles.left]} numberOfLines={1}>
@@ -151,6 +157,7 @@ export default function OCRScreen() {
                         inputMode="numeric"
                         textAlign="center"
                         accessibilityLabel="일 복용 횟수 입력"
+                        blurOnSubmit={false}            // ✅ 포커스 유지
                       />
                     ) : (
                       <Text style={styles.cellText}>
@@ -178,6 +185,7 @@ export default function OCRScreen() {
                         inputMode="numeric"
                         textAlign="center"
                         accessibilityLabel="복약 일수 입력"
+                        blurOnSubmit={false}            // ✅ 포커스 유지
                       />
                     ) : (
                       <Text style={styles.cellText}>
@@ -226,10 +234,15 @@ export default function OCRScreen() {
 
           {/* 마스코트 안내 */}
           <View style={styles.mascotWrap}>
-            <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>다 됐으면 저를 눌러주세요!!</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/role')} // ✅ role.tsx로 이동
+              accessibilityLabel="역할 선택 화면으로 이동"
+            >
+              <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
+              <View style={styles.bubble}>
+                <Text style={styles.bubbleText}>다 됐으면 저를 눌러주세요!!</Text>
+              </View>
+              </TouchableOpacity>
           </View>
         </ScrollView>
       </Wrapper>
