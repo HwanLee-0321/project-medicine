@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Image, TouchableWithoutFeedback } from 'react-native';
 import { useState } from 'react';
+import { colors } from '@styles/colors'; // 색상 팔레트 불러오기
 
 interface Props {
   userName: string;      // 메시지 안에 들어갈 사용자 이름
@@ -29,7 +30,7 @@ export default function IntroOverlay({ userName, onFinish }: Props) {
   return (
     <TouchableWithoutFeedback onPress={handlePress}>
       <View style={styles.overlay}>
-        <Image source={require('../../assets/images/mascot.png')} style={styles.image} />
+        <Image source={require('@assets/images/mascot.png')} style={styles.image} />
         <View style={styles.messageBox}>
           <Text style={styles.message}>{getMessage()}</Text>
           <Text style={styles.sub}>화면을 터치하면 다음으로 넘어갑니다</Text>
@@ -42,7 +43,7 @@ export default function IntroOverlay({ userName, onFinish }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
@@ -55,15 +56,21 @@ const styles = StyleSheet.create({
   },
   messageBox: {
     alignItems: 'center',
+    paddingHorizontal: 10,
   },
   message: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
+    color: colors.textPrimary,
   },
   sub: {
-    fontSize: 14,
-    color: '#777',
+    fontSize: 18,
+    color: colors.textPrimary, // 더 진한 색상 사용
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
 });
