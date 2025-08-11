@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 import NextMedication from './components/NextMedication';
 import CurrentTime from './components/CurrentTime';
 // import Mascot from '../components/Mascot';
-import VoiceGuide from './components/VoiceGuide';
+// import VoiceGuide from './components/VoiceGuide';
 import OCRCapture from './components/OCRCapture';
 import ReminderHandler from './components/ReminderHandler';
 // import SettingsShortcut from '../components/SettingsShortcut';
@@ -34,7 +34,7 @@ const Home = () => {
                 <OCRCapture />
 
                 {/* 음성 안내 및 건강 상태 대화 */}
-                <VoiceGuide />
+                {/* <VoiceGuide /> */}
 
                 {/* 설정 화면 바로가기 (글씨, 음성, 식사시간 등) */}
                 <TouchableOpacity
