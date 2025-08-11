@@ -45,10 +45,8 @@ const ImagePickerScreen: React.FC = () => {
     return true;
   };
 
-  // 🟢 수정된 부분: 마스코트 터치 시 바로 화면 전환
   const handleMascotPress = () => {
-    // image 상태 검사 제거, 바로 /ocr 화면으로 이동
-    router.push('/ocr');
+    if (!image) handleImagePick();
   };
 
   const handleImagePick = () => {
@@ -58,7 +56,7 @@ const ImagePickerScreen: React.FC = () => {
       [
         { text: '카메라로 촬영', onPress: openCamera },
         { text: '갤러리에서 선택', onPress: openGallery },
-        { text: '취소', style: 'cancel' },
+        { text: '취소', style: 'cancel' }, // 취소 시 상태 변화 없음
       ],
       { cancelable: true }
     );
@@ -88,6 +86,7 @@ const ImagePickerScreen: React.FC = () => {
     setStep(0);
   };
 
+  // ⬇️ “다음” → /ocr 로 이동, uri 전달
   const handleNext = () => {
     if (!image?.uri) {
       Alert.alert('사진을 선택해주세요!');
@@ -134,11 +133,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
-    flex: 1,
-    justifyContent: 'center',
+    flex: 1, // ✅ ScrollView가 전체 높이 사용
+    justifyContent: 'center', // ✅ 세로 중앙 정렬
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingVertical: 40, // 필요 시 여백 조정
   },
   mascotBox: { alignItems: 'center', marginTop: 12 },
   mascot: { width: 120, height: 120, resizeMode: 'contain' },
