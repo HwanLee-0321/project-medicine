@@ -1,28 +1,60 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '@styles/colors'; // ✅ 색상 팔레트 적용
+import { colors } from '@styles/colors';
+import { setUserRole } from './utils/user';
 
 export default function RoleSelect() {
   const router = useRouter();
+  const [loading, setLoading] = React.useState<'elderly' | 'caregiver' | null>(null);
+
+  const chooseRole = async (isElderly: boolean) => {
+    try {
+      setLoading(isElderly ? 'elderly' : 'caregiver');
+      const { message } = await setUserRole(isElderly);
+      // 저장 성공 후 분기 이동
+      if (isElderly) {
+        router.replace('./features/senior');
+      } else {
+        router.replace('./features/caregiver');
+      }
+      // 원하면 메시지 토스트/Alert 노출
+      // Alert.alert('역할 저장', message ?? '저장되었습니다.');
+    } catch (e: any) {
+      Alert.alert('오류', e?.message ?? '역할 저장 중 오류가 발생했어요.');
+    } finally {
+      setLoading(null);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>사용자 유형을 선택해주세요</Text>
 
       <TouchableOpacity
-        style={[styles.roleButton, styles.primaryButton]}
-        onPress={() => router.replace('./features/senior')}
+        style={[styles.roleButton, styles.primaryButton, loading && { opacity: 0.7 }]}
+        onPress={() => chooseRole(true)} // 고령자 → is_elderly = 1
         accessibilityLabel="고령자 화면으로 이동"
+        disabled={!!loading}
       >
-        <Text style={styles.primaryButtonText}>고령자</Text>
+        {loading === 'elderly' ? (
+          <ActivityIndicator />
+        ) : (
+          <Text style={styles.primaryButtonText}>고령자</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.roleButton, styles.secondaryButton]}
-        onPress={() => router.replace('./features/caregiver')}
+        style={[styles.roleButton, styles.secondaryButton, loading && { opacity: 0.7 }]}
+        onPress={() => chooseRole(false)} // 보호자 → is_elderly = 0
         accessibilityLabel="보호자 화면으로 이동"
+        disabled={!!loading}
       >
-        <Text style={styles.secondaryButtonText}>보호자</Text>
+        {loading === 'caregiver' ? (
+          <ActivityIndicator />
+        ) : (
+          <Text style={styles.secondaryButtonText}>보호자</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -33,14 +65,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
-    backgroundColor: colors.background, // ✅ 배경색 적용
+    backgroundColor: colors.background,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 32,
     textAlign: 'center',
-    color: colors.textPrimary, // ✅ 텍스트 색상 적용
+    color: colors.textPrimary,
   },
   roleButton: {
     paddingVertical: 18,
@@ -58,12 +90,12 @@ const styles = StyleSheet.create({
     borderColor: colors.secondary,
   },
   primaryButtonText: {
-    color: colors.onPrimary, // ✅ 팔레트 onPrimary 사용
+    color: colors.onPrimary,
     fontSize: 18,
     fontWeight: '600',
   },
   secondaryButtonText: {
-    color: colors.onSecondary, // ✅ 팔레트 onSecondary 사용
+    color: colors.onSecondary,
     fontSize: 18,
     fontWeight: '600',
   },

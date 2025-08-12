@@ -11,40 +11,49 @@ export type SignUpPayload = {
   user_pw: string;
   guard_mail: string;
   elder_birth: string;
-  birth_type: CalendarType;
-  sex: Gender;
-  is_elderly: boolean;
+  birth_type: CalendarType; // 서버에서 Boolean/0|1로 변환 처리
+  sex: Gender;              // 서버에서 Boolean/0|1로 변환 처리
+  is_elderly: boolean;      // true/false 전송 (백엔드에서 Boolean 처리)
 };
 
 export type SignUpResponse = {
   message: string;
-  echoName: string;
+  user_id?: string;   // 서버가 함께 내려줄 것을 권장
 };
 
 export type LoginBody = {
   id: string;
   password: string;
 };
+
 export type LoginResponse = {
   message: string;
   token: string;
+  user_id?: string;   // 서버가 함께 내려줄 것을 권장
+  elder_nm?: string;
 };
 
 /** ---- SecureStore Keys ---- */
 const ACCESS_TOKEN_KEY = 'accessToken';
 const USER_ID_KEY = 'user_id';
 
-/** ---- user_id 저장/조회 ---- */
+/** ---- user_id 저장/조회/삭제 ---- */
 export async function setUserId(userId: string) {
   await SecureStore.setItemAsync(USER_ID_KEY, userId);
 }
 export async function getUserId() {
   return SecureStore.getItemAsync(USER_ID_KEY);
 }
+export async function clearUserId() {
+  await SecureStore.deleteItemAsync(USER_ID_KEY);
+}
 
-/** ---- access token 저장/삭제(참고) ---- */
+/** ---- access token 저장/삭제 ---- */
 export async function setAccessToken(token: string) {
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, token);
+}
+export async function getAccessToken() {
+  return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
 }
 export async function clearAccessToken() {
   await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
@@ -65,29 +74,34 @@ export async function checkDuplicateId(userId: string): Promise<boolean> {
   return !!res.data.available;
 }
 
-/** 회원가입 */
+/** 회원가입
+ *  서버 응답에 user_id가 있으면 그것을 저장, 없으면 payload.user_id로 폴백
+ */
 export async function signUp(payload: SignUpPayload): Promise<SignUpResponse> {
-  const res = await api.post<{ message: string }>('/users/signup', payload);
-  // 회원가입 직후 user_id 저장
-  await setUserId(payload.user_id);
-  return { message: res.data.message, echoName: payload.elder_nm };
+  const res = await api.post<SignUpResponse>('/users/signup', payload);
+  const serverUserId = res.data?.user_id ?? payload.user_id;
+  if (serverUserId) await setUserId(serverUserId);
+  return res.data;
 }
 
-/** 로그인 */
+/** 로그인
+ *  서버 응답의 user_id를 저장, 없으면 입력 id로 폴백
+ */
 export async function login(body: LoginBody): Promise<LoginResponse> {
   const payload = { user_id: body.id, user_pw: body.password };
   const res = await api.post<LoginResponse>('/users/login', payload);
-  const { token, message } = res.data;
 
-  await setAccessToken(token);
-  // 로그인한 계정 id를 보관 (백엔드가 따로 주지 않아도 프론트 입력값으로 저장)
-  await setUserId(body.id);
+  const { token, user_id: serverUserId } = res.data;
+  if (token) await setAccessToken(token);
 
-  return { message, token };
+  const finalUserId = serverUserId ?? body.id;
+  if (finalUserId) await setUserId(finalUserId);
+
+  return res.data;
 }
 
 /** 로그아웃 */
 export async function logout(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-  await SecureStore.deleteItemAsync(USER_ID_KEY);
+  await clearAccessToken();
+  await clearUserId();
 }

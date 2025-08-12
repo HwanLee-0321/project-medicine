@@ -1,7 +1,6 @@
 // app/ocr.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-
 import {
   SafeAreaView,
   ScrollView,
@@ -14,12 +13,15 @@ import {
   Platform,
   KeyboardAvoidingView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { colors } from '@styles/colors';
+import { postOcrMedications } from './utils/medication';
 
 type Row = {
   id: string;
   name: string;
+  dosage: string;      // 🔹 회당 복용량 (숫자 문자열)
   timesPerDay: string; // 숫자 문자열
   days: string;        // 숫자 문자열
 };
@@ -28,7 +30,6 @@ const onlyDigits = (s: string) => s.replace(/\D/g, '');
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 const R = 14;
 
-/** ✅ 컴포넌트 바깥으로 분리: 렌더마다 새로 안 만들어져서 포커스 안 날아감 */
 const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   Platform.OS === 'ios' ? (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={48}>
@@ -45,9 +46,10 @@ const sanitizeRows = (input: unknown): Row[] => {
     const obj = (typeof r === 'object' && r) ? (r as any) : {};
     const id = typeof obj.id === 'string' && obj.id.trim() ? obj.id : `ocr-${i}`;
     const name = typeof obj.name === 'string' ? obj.name : '';
+    const dosage = typeof obj.dosage === 'string' ? obj.dosage : (obj.dosage != null ? String(obj.dosage) : '');
     const timesPerDay = typeof obj.timesPerDay === 'string' ? obj.timesPerDay : (obj.timesPerDay != null ? String(obj.timesPerDay) : '');
     const days = typeof obj.days === 'string' ? obj.days : (obj.days != null ? String(obj.days) : '');
-    return { id, name, timesPerDay, days };
+    return { id, name, dosage, timesPerDay, days };
   });
 };
 
@@ -60,26 +62,22 @@ export default function OCRScreen() {
     Array.from({ length: 4 }).map((_, i) => ({
       id: `init-${i}`,
       name: '',
+      dosage: '',
       timesPerDay: '',
       days: '',
     }))
   );
   const [editing, setEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  /** ✅ 결과 페이지 진입 시 파라미터에 rows가 있으면 반영 */
   useEffect(() => {
     if (!rowsParam) return;
     try {
       const parsed = JSON.parse(rowsParam);
       const cleaned = sanitizeRows(parsed);
-      if (cleaned.length) {
-        setRows(cleaned);
-        // 필요하면 자동 편집 모드로 진입하고 싶을 때:
-        // setEditing(true);
-      }
+      if (cleaned.length) setRows(cleaned);
     } catch (e) {
       console.warn('rows 파라미터 파싱 실패', e);
-      // 파싱 실패 시 기존 기본 4행 유지
     }
   }, [rowsParam]);
 
@@ -91,14 +89,16 @@ export default function OCRScreen() {
   const startEdit = () => setEditing(true);
 
   const finishEdit = () => {
-    // 간단 검증: 숫자 칸에 숫자 아닌 값 들어가면 경고
+    // 간단 검증
     const bad = rows.find(
       r =>
+        (r.name.trim() !== '' && r.dosage === '') ||
+        (r.dosage !== '' && !/^\d+$/.test(r.dosage)) ||
         (r.timesPerDay !== '' && !/^\d+$/.test(r.timesPerDay)) ||
         (r.days !== '' && !/^\d+$/.test(r.days))
     );
     if (bad) {
-      Alert.alert('입력 오류', '일 복용 횟수와 복약 일수는 숫자만 입력해주세요.');
+      Alert.alert('입력 오류', '회당 복용량/일 복용 횟수/복약 일수는 숫자만 입력해주세요.');
       return;
     }
     setEditing(false);
@@ -106,26 +106,71 @@ export default function OCRScreen() {
 
   const addRow = () => {
     const id = `row-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`;
-    setRows(prev => [
-      ...prev,
-      { id, name: '', timesPerDay: '', days: '' },
-    ]);
+    setRows(prev => [...prev, { id, name: '', dosage: '', timesPerDay: '', days: '' }]);
   };
 
-  const removeRow = (id: string) => {
-    setRows(prev => prev.filter(r => r.id !== id));
-  };
-
-  const updateRow = (id: string, patch: Partial<Row>) => {
+  const removeRow = (id: string) => setRows(prev => prev.filter(r => r.id !== id));
+  const updateRow = (id: string, patch: Partial<Row>) =>
     setRows(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
+
+  /** 🔥 서버 저장 */
+  const saveToServer = async () => {
+    // 저장할 행만 선별
+    const items = rows
+      .map(r => ({
+        name: r.name.trim(),
+        dosage: r.dosage.trim(),
+        timesPerDay: r.timesPerDay.trim(),
+        days: r.days.trim(),
+      }))
+      .filter(r => r.name && r.dosage && r.timesPerDay && r.days);
+
+    if (items.length === 0) {
+      Alert.alert('저장할 데이터가 없습니다', '약 이름/복용량/횟수/일수를 모두 채워주세요.');
+      return;
+    }
+
+    // 최종 검증
+    const invalid = items.find(
+      r => !/^\d+$/.test(r.dosage) || !/^\d+$/.test(r.timesPerDay) || !/^\d+$/.test(r.days)
+    );
+    if (invalid) {
+      Alert.alert('입력 오류', '회당 복용량/일 복용 횟수/복약 일수는 숫자만 입력해주세요.');
+      return;
+    }
+
+    // 범위 제한(옵션)
+    const normalized = items.map(r => ({
+      name: r.name,
+      dosage: String(clamp(Number(r.dosage), 1, 10)),
+      timesPerDay: String(clamp(Number(r.timesPerDay), 1, 10)),
+      days: String(clamp(Number(r.days), 1, 365)),
+    }));
+
+    try {
+      setIsSaving(true);
+      const { ok, fail, firstErrorMessage } = await postOcrMedications(normalized);
+      if (fail === 0) {
+        Alert.alert('저장 완료', `${ok}개 항목이 저장되었습니다.`);
+        router.push('/role');
+      } else if (ok > 0) {
+        Alert.alert('부분 저장', `${ok}개 저장, ${fail}개 실패\n${firstErrorMessage ?? ''}`);
+      } else {
+        Alert.alert('저장 실패', firstErrorMessage ?? '서버와 통신 중 문제가 발생했어요.');
+      }
+    } catch (e: any) {
+      Alert.alert('오류', e?.message ?? '서버와 통신 중 문제가 발생했어요.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <SafeAreaView style={styles.safe}>
       <Wrapper>
         <ScrollView
-          contentContainerStyle={styles.container} // 가운데 정렬 핵심
-          keyboardShouldPersistTaps="always"       // ✅ 포커스 유지 보강
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="always"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         >
           <View style={styles.card}>
@@ -141,6 +186,7 @@ export default function OCRScreen() {
               {/* 헤더 */}
               <View style={[styles.row, styles.headRow]}>
                 <Text style={[styles.cell, styles.headCell, styles.nameCol]}>약 이름</Text>
+                <Text style={[styles.cell, styles.headCell]}>회당 복용량</Text>{/* 🔹 NEW */}
                 <Text style={[styles.cell, styles.headCell]}>일 복용 횟수</Text>
                 <Text style={[styles.cell, styles.headCell]}>복약 일수</Text>
                 {editing && <Text style={[styles.cell, styles.headCell, styles.actionCol]}> </Text>}
@@ -160,12 +206,35 @@ export default function OCRScreen() {
                         placeholderTextColor={colors.textSecondary}
                         accessibilityLabel="약 이름 입력"
                         returnKeyType="done"
-                        blurOnSubmit={false}            // ✅ 포커스 유지
+                        blurOnSubmit={false}
                       />
                     ) : (
-                      <Text style={[styles.cellText, styles.left]} numberOfLines={1}>
-                        {r.name}
-                      </Text>
+                      <Text style={[styles.cellText, styles.left]} numberOfLines={1}>{r.name}</Text>
+                    )}
+                  </View>
+
+                  {/* 회당 복용량 */}
+                  <View style={styles.cellBox}>
+                    {editing ? (
+                      <TextInput
+                        style={[styles.input, styles.inputNumber]}
+                        value={r.dosage}
+                        onChangeText={(v) => {
+                          const d = onlyDigits(v).slice(0, 2);
+                          const clampedVal = d === '' ? '' : String(clamp(Number(d), 1, 10));
+                          updateRow(r.id, { dosage: clampedVal });
+                        }}
+                        placeholder="량"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        inputMode="numeric"
+                        textAlign="center"
+                        accessibilityLabel="회당 복용량 입력"
+                        blurOnSubmit={false}
+                      />
+                    ) : (
+                      <Text style={styles.cellText}>{r.dosage}</Text>
                     )}
                   </View>
 
@@ -177,7 +246,6 @@ export default function OCRScreen() {
                         value={r.timesPerDay}
                         onChangeText={(v) => {
                           const d = onlyDigits(v).slice(0, 2);
-                          // 1~10 정도로 제한 (원하면 조정)
                           const clampedVal = d === '' ? '' : String(clamp(Number(d), 1, 10));
                           updateRow(r.id, { timesPerDay: clampedVal });
                         }}
@@ -188,12 +256,10 @@ export default function OCRScreen() {
                         inputMode="numeric"
                         textAlign="center"
                         accessibilityLabel="일 복용 횟수 입력"
-                        blurOnSubmit={false}            // ✅ 포커스 유지
+                        blurOnSubmit={false}
                       />
                     ) : (
-                      <Text style={styles.cellText}>
-                        {r.timesPerDay}
-                      </Text>
+                      <Text style={styles.cellText}>{r.timesPerDay}</Text>
                     )}
                   </View>
 
@@ -205,7 +271,6 @@ export default function OCRScreen() {
                         value={r.days}
                         onChangeText={(v) => {
                           const d = onlyDigits(v).slice(0, 3);
-                          // 1~365 제한 (원하면 조정)
                           const clampedVal = d === '' ? '' : String(clamp(Number(d), 1, 365));
                           updateRow(r.id, { days: clampedVal });
                         }}
@@ -216,12 +281,10 @@ export default function OCRScreen() {
                         inputMode="numeric"
                         textAlign="center"
                         accessibilityLabel="복약 일수 입력"
-                        blurOnSubmit={false}            // ✅ 포커스 유지
+                        blurOnSubmit={false}
                       />
                     ) : (
-                      <Text style={styles.cellText}>
-                        {r.days}
-                      </Text>
+                      <Text style={styles.cellText}>{r.days}</Text>
                     )}
                   </View>
 
@@ -251,9 +314,30 @@ export default function OCRScreen() {
                   </TouchableOpacity>
                 </>
               ) : (
-                <TouchableOpacity style={[styles.actionBtn, styles.editBtn]} onPress={startEdit} accessibilityLabel="약 정보 수정">
-                  <Text style={styles.actionBtnText}>수정</Text>
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.editBtn]}
+                    onPress={startEdit}
+                    accessibilityLabel="약 정보 수정"
+                  >
+                    <Text style={styles.actionBtnText}>수정</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.saveBtn, isSaving && { opacity: 0.7 }]}
+                    onPress={isSaving ? undefined : saveToServer}
+                    disabled={isSaving}
+                    accessibilityLabel="서버에 저장"
+                  >
+                    {isSaving ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <ActivityIndicator />
+                        <Text style={styles.saveBtnText}>저장 중...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.saveBtnText}>저장</Text>
+                    )}
+                  </TouchableOpacity>
+                </>
               )}
             </View>
 
@@ -266,7 +350,7 @@ export default function OCRScreen() {
           {/* 마스코트 안내 */}
           <View style={styles.mascotWrap}>
             <TouchableOpacity
-              onPress={() => router.push('/role')} // ✅ role.tsx로 이동
+              onPress={() => router.push('/role')}
               accessibilityLabel="역할 선택 화면으로 이동"
             >
               <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
@@ -282,203 +366,55 @@ export default function OCRScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
+  safe: { flex: 1, backgroundColor: colors.background },
   container: {
-    // 화면 중앙 배치
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-    gap: 16,
+    flexGrow: 1, justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 24, gap: 16,
   },
   card: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: colors.white,
-    borderRadius: R,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.panel,
-    // 약한 그림자
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    width: '100%', maxWidth: 420, backgroundColor: colors.white, borderRadius: R,
+    padding: 16, borderWidth: 1, borderColor: colors.panel,
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 }, elevation: 2,
   },
-  cardHeader: {
-    marginBottom: 10,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  cardSub: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
+  cardHeader: { marginBottom: 10 },
+  cardTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 4 },
+  cardSub: { fontSize: 14, color: colors.textSecondary },
 
-  table: {
-    marginTop: 8,
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.panel,
-  },
-  row: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.panel,
-    alignItems: 'stretch',
-  },
-  headRow: {
-    backgroundColor: colors.secondary,
-    borderTopWidth: 0,
-  },
+  table: { marginTop: 8, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: colors.panel },
+  row: { flexDirection: 'row', backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.panel, alignItems: 'stretch' },
+  headRow: { backgroundColor: colors.secondary, borderTopWidth: 0 },
 
-  // 텍스트 기반 셀
-  cell: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    textAlign: 'center',
-    color: colors.textPrimary,
-  },
-  headCell: {
-    fontWeight: '700',
-    color: colors.onSecondary,
-  },
-  nameCol: {
-    flex: 1.2,
-    textAlign: 'left',
-  },
+  cell: { flex: 1, paddingVertical: 12, paddingHorizontal: 10, textAlign: 'center', color: colors.textPrimary },
+  headCell: { fontWeight: '700', color: colors.onSecondary },
+  nameCol: { flex: 1.2, textAlign: 'left' },
 
-  // 입력/보기 공통 박스
-  cellBox: {
-    flex: 1,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.panel,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    justifyContent: 'center',
-  },
-  nameColBox: {
-    flex: 1.2,
-    borderLeftWidth: 0,
-  },
-  actionCol: {
-    width: 64,
-    textAlign: 'center',
-  },
-  actionColBox: {
-    width: 64,
-    borderLeftWidth: 1,
-    alignItems: 'center',
-  },
+  cellBox: { flex: 1, borderLeftWidth: 1, borderLeftColor: colors.panel, paddingVertical: 8, paddingHorizontal: 10, justifyContent: 'center' },
+  nameColBox: { flex: 1.2, borderLeftWidth: 0 },
+  actionCol: { width: 64, textAlign: 'center' },
+  actionColBox: { width: 64, borderLeftWidth: 1, alignItems: 'center' },
 
-  cellText: {
-    color: colors.textPrimary,
-    textAlign: 'center',
-  },
+  cellText: { color: colors.textPrimary, textAlign: 'center' },
   left: { textAlign: 'left' },
 
-  input: {
-    borderWidth: 1,
-    borderColor: colors.panel,
-    backgroundColor: colors.white,
-    color: colors.textPrimary,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  inputText: {
-    // 약 이름
-  },
-  inputNumber: {
-    textAlign: 'center',
-  },
-  removeText: {
-    color: colors.danger,
-    fontWeight: '700',
-  },
+  input: { borderWidth: 1, borderColor: colors.panel, backgroundColor: colors.white, color: colors.textPrimary, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10 },
+  inputText: {},
+  inputNumber: { textAlign: 'center' },
+  removeText: { color: colors.danger, fontWeight: '700' },
 
-  actionsRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  actionBtn: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.panel,
-    backgroundColor: colors.white,
-  },
-  editBtn: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  addBtn: {
-    backgroundColor: colors.secondary,
-    borderColor: colors.secondary,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  actionBtnText: {
-    color: colors.onSecondary,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  saveBtnText: {
-    color: colors.onPrimary,
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  actionsRow: { marginTop: 12, flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  actionBtn: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: colors.panel, backgroundColor: colors.white },
+  editBtn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  addBtn: { backgroundColor: colors.secondary, borderColor: colors.secondary },
+  saveBtn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  actionBtnText: { color: colors.onSecondary, fontWeight: '700', fontSize: 16 },
+  saveBtnText: { color: colors.onPrimary, fontWeight: '700', fontSize: 16 },
 
-  summaryText: {
-    marginTop: 8,
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  summaryEm: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
+  summaryText: { marginTop: 8, color: colors.textSecondary, fontSize: 12 },
+  summaryEm: { color: colors.textPrimary, fontWeight: '700' },
 
-  mascotWrap: {
-    width: '100%',
-    maxWidth: 420,
-    alignItems: 'flex-end',
-    paddingRight: 6,
-  },
-  mascot: {
-    width: 92,
-    height: 92,
-    resizeMode: 'contain',
-  },
-  bubble: {
-    position: 'absolute',
-    right: 86,
-    bottom: 26,
-    backgroundColor: colors.white,
-    borderColor: colors.panel,
-    borderWidth: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  bubbleText: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
+  mascotWrap: { width: '100%', maxWidth: 420, alignItems: 'flex-end', paddingRight: 6 },
+  mascot: { width: 92, height: 92, resizeMode: 'contain' },
+  bubble: { position: 'absolute', right: 86, bottom: 26, backgroundColor: colors.white, borderColor: colors.panel, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
+  bubbleText: { color: colors.textPrimary, fontWeight: '700' },
 });
