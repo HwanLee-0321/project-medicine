@@ -1,36 +1,46 @@
-import React, { useMemo, useRef } from 'react';
-import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity } from 'react-native';
+// app/login.tsx (또는 현재 파일 경로에 맞게)
+import React, { useMemo, useRef, useState } from 'react';
+import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './components';
 import { colors } from '../styles/colors';
+import { login } from './utils/auth';
+import { getErrorMessage } from './utils/api';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [id, setId] = React.useState('');
-  const [password, setPassword] = React.useState('');
+  const [id, setId] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const idRef = useRef<TextInput>(null);
   const pwRef = useRef<TextInput>(null);
-
-  // ✅ 추가: 보기/숨김 상태
-  const [showPwd, setShowPwd] = React.useState(false);
 
   const canSubmit = useMemo(
     () => id.trim().length > 0 && password.trim().length > 0,
     [id, password]
   );
 
-  const handleLogin = () => {
-    if (!canSubmit) {
-      alert('아이디와 비밀번호를 입력해주세요.');
+  const handleLogin = async () => {
+    if (!canSubmit || busy) {
+      Alert.alert('아이디와 비밀번호를 입력해주세요.');
       return;
     }
-    router.push('/setup');
+    try {
+      setBusy(true);
+      await login({ id: id.trim(), password });
+      // 로그인 성공 시 이동 (필요 경로로 변경 가능)
+      router.replace('/setup');
+    } catch (e) {
+      Alert.alert(getErrorMessage(e, '로그인에 실패했어요.'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <ScreenContainer keyboardOffset={Platform.select({ ios: 24, android: 0 }) as number}>
-      {/* ✅ 가운데 정렬 래퍼 */}
       <View style={styles.center}>
         <Text style={styles.title}>나만의 도우미</Text>
 
@@ -49,7 +59,6 @@ export default function LoginScreen() {
           testID="input-id"
         />
 
-        {/* ✅ 비밀번호 + 보기/숨김 토글 (최소 수정) */}
         <View style={styles.passwordWrap}>
           <PasswordInput
             inputRef={pwRef}
@@ -61,49 +70,42 @@ export default function LoginScreen() {
             autoComplete="password"
             accessibilityLabel="비밀번호 입력"
             testID="input-password"
-            secureTextEntry={!showPwd}          // ← 보기/숨김 제어
-            style={styles.pwInputPaddingRight}  // ← 버튼 자리 확보(겹침 방지)
+            secureTextEntry={!showPwd}
+            style={styles.pwInputPaddingRight}
           />
           <TouchableOpacity
-            onPress={() => setShowPwd(s => !s)}
+            onPress={() => setShowPwd((s) => !s)}
             style={styles.toggleBtn}
             accessibilityRole="button"
             accessibilityLabel={showPwd ? '비밀번호 숨기기' : '비밀번호 보기'}
+            disabled={busy}
           >
             <Text style={styles.toggleText}>{showPwd ? '숨김' : '보기'}</Text>
           </TouchableOpacity>
         </View>
 
         <PrimaryButton
-          title="로그인"
+          title={busy ? '로그인 중...' : '로그인'}
           onPress={handleLogin}
-          disabled={!canSubmit}
+          disabled={!canSubmit || busy}
           testID="btn-login"
+          rightIcon={busy ? <ActivityIndicator /> : undefined}
         />
 
-        <TextLink
-          title="회원가입"
-          onPress={() => router.push('/signup')}
-        />
+        <TextLink title="회원가입" onPress={() => router.push('/signup')} />
 
-        <TouchableOpacity
-          onPress={() => router.push('/features/senior')}
-        >
+        <TouchableOpacity onPress={() => router.push('/features/senior')} disabled={busy}>
           <Text>고령자로 이동</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.push('/features/caregiver')}
-        >
+        <TouchableOpacity onPress={() => router.push('/features/caregiver')} disabled={busy}>
           <Text>보호자로 이동</Text>
         </TouchableOpacity>
-
       </View>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  // ✅ 화면 정가운데로 모으기
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -118,7 +120,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: colors.textPrimary,
   },
-  // ▼▼▼ 여기부터 토글 위해 아주 살짝 추가 ▼▼▼
   passwordWrap: {
     position: 'relative',
     justifyContent: 'center',
@@ -137,6 +138,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pwInputPaddingRight: {
-    paddingRight: 60, // 토글 버튼과 겹치지 않게 여유
+    paddingRight: 60,
   },
 });
