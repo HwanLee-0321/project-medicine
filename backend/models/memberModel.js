@@ -1,68 +1,95 @@
+// models/memberModel.js
 const sequelize = require('../db/sequelize');
 const User = require('../db/Users');
-const Medications = require('../db/Medications');
-const Medication_schedule = require('../db/Medication_schedule');
-const Health_alerts = require('../db/Health_alerts');
 
-// 탈퇴하지 않은 유저만 조회
+/**
+ * 탈퇴하지 않은 유저만 조회
+ * - WHERE user_id = :user_id AND delyn = 'N'
+ */
 async function getUserById(user_id) {
-  const user = await User.findOne({ 
-    where: { 
-      user_id, 
-      delyn: 'N' 
-    } 
+  return User.findOne({
+    where: {
+      user_id,
+      delyn: 'N',
+    },
   });
-  return user;  // Sequelize 모델 그대로 반환
 }
 
-// 회원 생성
+/**
+ * 회원 생성
+ * - memberController.js/signup 에서 호출
+ */
 async function createUser(userData) {
-  return await User.create(userData);
+  return User.create(userData);
 }
 
-// 회원 탈퇴 (논리 삭제 방식)
+/**
+ * 회원 탈퇴 (논리 삭제)
+ * - delyn = 'Y' 로 업데이트
+ * - 트랜잭션 사용
+ */
 async function removeMember(user_id) {
   const t = await sequelize.transaction();
-
   try {
-    const result = await User.update(
+    const [affected] = await User.update(
       { delyn: 'Y' },
       { where: { user_id }, transaction: t }
     );
 
-    if (result[0] === 0) {
-      console.warn(`탈퇴 실패: user_id ${user_id}가 존재하지 않거나 이미 탈퇴`);
+    if (affected === 0) {
       await t.rollback();
-      return 0;
+      return 0; // 존재하지 않거나 이미 탈퇴
     }
 
-    // 필요한 경우 다른 테이블도 논리 삭제 처리 가능
-
     await t.commit();
-    return result[0];
+    return affected;
   } catch (err) {
-    console.error('탈퇴 처리 중 오류 발생:', err);
     await t.rollback();
     throw err;
   }
 }
 
-// 첫 로그인 처리
-async function updateUserFirstLoginAt(user_id) {
-  await User.update(
+/**
+ * 첫 로그인 처리
+ * - 아직 first_login = 0 인 경우에만 1로 업데이트
+ * - delyn = 'N' 인 사용자만
+ */
+async function updateUserFirstLogin(user_id) {
+  const [affected] = await User.update(
     { first_login: 1 },
     {
       where: {
         user_id,
-        first_login: 0,  // 아직 첫 로그인이 아닌 경우에만 업데이트
-      }
+        first_login: 0,
+        delyn: 'N',
+      },
     }
   );
+  return affected;
+}
+
+/**
+ * 역할 저장/수정 (is_elderly)
+ * - WHERE user_id = :user_id AND delyn = 'N'
+ * - 반환: 업데이트된 row 수 (0 or 1)
+ */
+async function updateUserRole(user_id, isElderlyBool) {
+  const [affected] = await User.update(
+    { is_elderly: isElderlyBool ? 1 : 0 },
+    {
+      where: {
+        user_id,
+        delyn: 'N',
+      },
+    }
+  );
+  return affected;
 }
 
 module.exports = {
   getUserById,
   createUser,
   removeMember,
-  updateUserFirstLoginAt
+  updateUserFirstLogin,
+  updateUserRole,
 };

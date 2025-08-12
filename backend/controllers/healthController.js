@@ -9,15 +9,15 @@ exports.createAlert = async (req, res) => {
     const newAlert = await HealthAlert.create({ user_id, alert_type, detected_at });
     res.status(201).json({ message: 'Alert created', alertId: newAlert.id });
   } catch (err) {
-    console.error('Insert error:', err);
-    res.status(500).json({ error: 'Database insert error' });
+    console.error('Insert error:', err);  // 201: Created
+    res.status(500).json({ error: 'Database insert error' });  // 500: Internal Server Error
   }
 };
 
 // 전체 조회
 exports.getAlerts = async (req, res) => {
   try {
-    const alerts = await HealthAlert.findAll({ order: [['detected_at', 'DESC']] });
+    const alerts = await HealthAlert.findAll({ order: [['detected_at', 'DESC']] });  // 모든 HealthAlert 데이터를 detected_at 기준 내림차순 정렬
     res.json(alerts);
   } catch (err) {
     console.error('Select error:', err);
@@ -27,7 +27,7 @@ exports.getAlerts = async (req, res) => {
 
 // 특정 사용자 이력 조회
 exports.getUserAlerts = async (req, res) => {
-  const userId = req.params.userId;
+  const userId = req.params.userId;  // URL 파라미터에서 userId 추출
 
   try {
     const alerts = await HealthAlert.findAll({

@@ -6,8 +6,8 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    dialect: 'mysql',
-    logging: false,
+    dialect: 'mysql',  // 사용할 데이터베이스 종류
+    logging: false,  // SQL 쿼리 로그를 콘솔에 출력X
   }
 );
 
