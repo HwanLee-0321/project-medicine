@@ -86,6 +86,7 @@ export default function SetupScreen() {
             <Image source={require('../assets/images/mascot.png')} style={styles.mascot} />
             <Text style={styles.mascotText}>설정 완료</Text>
           </TouchableOpacity> */}
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </Wrapper>
