@@ -1,6 +1,5 @@
-// 예: app/prescription.tsx
-import ImagePickerExample from '../app/imagePicker'
+import OCRScreen from './ocr';
 
 export default function PrescriptionPage() {
-  return <ImagePickerExample />;
+  return <OCRScreen />;
 }

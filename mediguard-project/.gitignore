@@ -5,39 +5,66 @@ android/
 ios/
 
 # dependencies
+Node.js / Expo
+# ###################
 node_modules/
-
-# Expo
 .expo/
 dist/
 web-build/
-expo-env.d.ts
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.metro-health-check*
 
-# Native
-.kotlin/
-*.orig.*
+# Expo Secrets
+expo-env.d.ts
+.env
+.env*.local
+
+# Android
+# ###################
+mediguard-project/android/app/build/
+mediguard-project/android/build/
+mediguard-project/android/app/.cxx/
 *.jks
 *.p8
 *.p12
 *.key
+*.keystore
 *.mobileprovision
+android/local.properties
 
-# Metro
-.metro-health-check*
+# iOS
+# ###################
+mediguard-project/ios/build/
 
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
+# Python
+# ###################
+scripts/ocr/__pycache__/
+scripts/ocr/.venv/
+scripts/ocr/venv/
+scripts/ocr/env/
+*.pyc
 
-# macOS
+# IDE & Editor
+# ###################
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated
+# ###################
 .DS_Store
-*.pem
+Thumbs.db
 
-# local env files
-.env*.local
+# Logs & Temp files
+# ###################
+error.txt
+need.txt
+*.log
 
-# typescript
+# Misc
+# ###################
+*.orig.*
 *.tsbuildinfo
-
-app-example

@@ -78,7 +78,14 @@ export default function SetupScreen() {
           >
             <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
             <Text style={styles.mascotText}>다 됐으면 저를 눌러주세요!</Text>
+          {/* <TouchableOpacity onPress={() => router.push('/ocr')} style={styles.button}>
+            <Text style={styles.buttonText}>처방전 등록</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleFinishSetup} style={styles.mascotBox}>
+            <Image source={require('../assets/images/mascot.png')} style={styles.mascot} />
+            <Text style={styles.mascotText}>설정 완료</Text>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
     </Wrapper>
@@ -223,6 +230,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.textPrimary,
     marginHorizontal: 6,
+  },
+  button: {
+    backgroundColor: '#4E88FF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   mascotBox: {
     alignItems: 'center',
