@@ -3,9 +3,10 @@ import React from 'react';
 import { SafeAreaView, StyleSheet, TouchableOpacity, Text, View, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
+
 // 하위 컴포넌트
 import CurrentTime from './components/CurrentTime';
-import NextMedication from './components/NextMedication'; 
+import NextMedication from './components/NextMedication';
 import { colors } from '@styles/colors';
 
 // 경로는 프로젝트 구조에 맞게 조정
@@ -15,6 +16,7 @@ export default function Home() {
   const router = useRouter();
 
   return (
+
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* 1) 현재 시간 */}
@@ -53,7 +55,7 @@ export default function Home() {
         {/* 5) 설정 버튼 */}
         <TouchableOpacity
           style={[styles.button, styles.settingsButton]}
-          onPress={() => router.push('./components/SettingsShortcut')}
+          onPress={() => router.push('./senior/components/SettingsShortcut')}
           accessibilityLabel="설정 화면으로 이동"
         >
           <Text style={styles.buttonText}>⚙️ 설정</Text>
