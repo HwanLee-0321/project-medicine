@@ -4,7 +4,6 @@
     "slug": "mediguard-project",
     "version": "1.0.0",
     "orientation": "portrait",
-    // "icon": "./assets/images/icon.png",
     "scheme": "mediguardproject",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +12,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        // "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -22,8 +20,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      // "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
@@ -41,9 +38,12 @@
         {
           "microphonePermission": "마이크 사용을 허용해주세요.",
           "speechRecognitionPermission": "음성 인식을 허용해주세요.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
