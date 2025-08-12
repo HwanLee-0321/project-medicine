@@ -1,5 +1,5 @@
-import OCRScreen from './ocr';
+import ImagePickerScreen from "./imagePicker";
 
 export default function PrescriptionPage() {
-  return <OCRScreen />;
+  return <ImagePickerScreen />;
 }

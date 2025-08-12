@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { launchCamera, launchImageLibrary, Asset } from 'react-native-image-picker';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router'; // ✅ Href 타입 가져오기
 import { colors } from '@styles/colors';
+
 
 const messages = [
   '처방전 사진을 찍어볼까요?\n저를 터치해주세요!',
@@ -86,13 +88,15 @@ const ImagePickerScreen: React.FC = () => {
     setStep(0);
   };
 
-  // ⬇️ “다음” → /ocr 로 이동, uri 전달
+  // ⬇️ “다음” → /ocr-processing 로 이동 (객체 href + 타입 보장)
   const handleNext = () => {
-    if (!image?.uri) {
+    const uri = image?.uri;
+    if (!uri) {
       Alert.alert('사진을 선택해주세요!');
       return;
     }
-    router.push({ pathname: '/ocr', params: { uri: image.uri } });
+    const href: Href = { pathname: '/ocr-processing', params: { uri } };
+    router.push(href);
   };
 
   return (

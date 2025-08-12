@@ -1,6 +1,6 @@
 // app/ocr.tsx
-import React, { useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import {
   SafeAreaView,
@@ -38,8 +38,22 @@ const Wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     <View style={{ flex: 1 }}>{children}</View>
   );
 
+/** ✅ OCR 파라미터 방어적 파싱 */
+const sanitizeRows = (input: unknown): Row[] => {
+  if (!Array.isArray(input)) return [];
+  return input.map((r, i) => {
+    const obj = (typeof r === 'object' && r) ? (r as any) : {};
+    const id = typeof obj.id === 'string' && obj.id.trim() ? obj.id : `ocr-${i}`;
+    const name = typeof obj.name === 'string' ? obj.name : '';
+    const timesPerDay = typeof obj.timesPerDay === 'string' ? obj.timesPerDay : (obj.timesPerDay != null ? String(obj.timesPerDay) : '');
+    const days = typeof obj.days === 'string' ? obj.days : (obj.days != null ? String(obj.days) : '');
+    return { id, name, timesPerDay, days };
+  });
+};
+
 export default function OCRScreen() {
   const router = useRouter();
+  const { rows: rowsParam } = useLocalSearchParams<{ rows?: string }>();
 
   // 4행 기본 제공(빈값)
   const [rows, setRows] = useState<Row[]>(
@@ -51,6 +65,23 @@ export default function OCRScreen() {
     }))
   );
   const [editing, setEditing] = useState(false);
+
+  /** ✅ 결과 페이지 진입 시 파라미터에 rows가 있으면 반영 */
+  useEffect(() => {
+    if (!rowsParam) return;
+    try {
+      const parsed = JSON.parse(rowsParam);
+      const cleaned = sanitizeRows(parsed);
+      if (cleaned.length) {
+        setRows(cleaned);
+        // 필요하면 자동 편집 모드로 진입하고 싶을 때:
+        // setEditing(true);
+      }
+    } catch (e) {
+      console.warn('rows 파라미터 파싱 실패', e);
+      // 파싱 실패 시 기존 기본 4행 유지
+    }
+  }, [rowsParam]);
 
   const totalMeds = useMemo(
     () => rows.filter(r => r.name.trim() !== '').length,
@@ -147,8 +178,8 @@ export default function OCRScreen() {
                         onChangeText={(v) => {
                           const d = onlyDigits(v).slice(0, 2);
                           // 1~10 정도로 제한 (원하면 조정)
-                          const clamped = d === '' ? '' : String(clamp(Number(d), 1, 10));
-                          updateRow(r.id, { timesPerDay: clamped });
+                          const clampedVal = d === '' ? '' : String(clamp(Number(d), 1, 10));
+                          updateRow(r.id, { timesPerDay: clampedVal });
                         }}
                         placeholder="횟수"
                         placeholderTextColor={colors.textSecondary}
@@ -175,8 +206,8 @@ export default function OCRScreen() {
                         onChangeText={(v) => {
                           const d = onlyDigits(v).slice(0, 3);
                           // 1~365 제한 (원하면 조정)
-                          const clamped = d === '' ? '' : String(clamp(Number(d), 1, 365));
-                          updateRow(r.id, { days: clamped });
+                          const clampedVal = d === '' ? '' : String(clamp(Number(d), 1, 365));
+                          updateRow(r.id, { days: clampedVal });
                         }}
                         placeholder="일수"
                         placeholderTextColor={colors.textSecondary}
@@ -242,7 +273,7 @@ export default function OCRScreen() {
               <View style={styles.bubble}>
                 <Text style={styles.bubbleText}>다 됐으면 저를 눌러주세요!!</Text>
               </View>
-              </TouchableOpacity>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </Wrapper>
