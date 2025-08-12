@@ -1,11 +1,13 @@
-import { useState } from 'react';
+// app/setup.tsx
+import { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, Image,
-  Platform, KeyboardAvoidingView, ScrollView
+  Platform, KeyboardAvoidingView, ScrollView, ActivityIndicator
 } from 'react-native';
 import IntroOverlay from './IntroOverlay';
 import { useRouter } from 'expo-router';
 import { colors } from '@styles/colors';
+import { postMealTime } from './utils/medication'; // ✅ 분리한 도메인 함수 사용
 
 const clampNum = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const onlyDigits = (s: string) => s.replace(/\D/g, '');
@@ -30,6 +32,8 @@ export default function SetupScreen() {
   const [lunch,   setLunch]   = useState<TimePair>({ hour: '12', minute: '00' });
   const [dinner,  setDinner]  = useState<TimePair>({ hour: '18', minute: '00' });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const router = useRouter();
 
   const compose = (t: TimePair) =>
@@ -37,19 +41,27 @@ export default function SetupScreen() {
 
   const handleOverlayEnd = () => setShowOverlay(false);
 
-  const handleFinishSetup = () => {
+  const handleFinishSetup = async () => {
     if (!morning.hour || !morning.minute || !lunch.hour || !lunch.minute || !dinner.hour || !dinner.minute) {
       Alert.alert('모든 시간대를 입력해주세요!');
       return;
     }
-    const result = {
+    const payload = {
       morning: compose(morning),
       lunch:   compose(lunch),
       dinner:  compose(dinner),
     };
-    console.log('설정된 시간:', result);
-    Alert.alert('설정이 완료되었습니다!');
-    router.push('/prescription');
+
+    try {
+      setIsSubmitting(true);
+      const data = await postMealTime(payload); // ✅ 도메인 API 호출
+      Alert.alert('설정 완료', data?.message ?? '복약 시간이 저장되었습니다.');
+      router.push('/prescription');
+    } catch (e: any) {
+      Alert.alert('오류', e?.message ?? '서버와 통신 중 문제가 발생했어요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (showOverlay) {
@@ -60,7 +72,7 @@ export default function SetupScreen() {
     <Wrapper>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="always"   // ✅ 탭 시 포커스 유지
+        keyboardShouldPersistTaps="always"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       >
         <View style={styles.inner}>
@@ -71,21 +83,22 @@ export default function SetupScreen() {
           <TimeInput emoji="🌙" a11yLabel="저녁 복약 시간" value={dinner}  onChange={setDinner} />
 
           <TouchableOpacity
-            onPress={handleFinishSetup}
-            style={styles.mascotBox}
+            onPress={isSubmitting ? undefined : handleFinishSetup}
+            style={[styles.mascotBox, isSubmitting && { opacity: 0.6 }]}
             accessibilityRole="button"
             accessibilityLabel="설정을 완료하려면 눌러주세요"
+            disabled={isSubmitting}
+            activeOpacity={0.8}
           >
             <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
-            <Text style={styles.mascotText}>다 됐으면 저를 눌러주세요!</Text>
-          {/* <TouchableOpacity onPress={() => router.push('/ocr')} style={styles.button}>
-            <Text style={styles.buttonText}>처방전 등록</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={handleFinishSetup} style={styles.mascotBox}>
-            <Image source={require('../assets/images/mascot.png')} style={styles.mascot} />
-            <Text style={styles.mascotText}>설정 완료</Text>
-          </TouchableOpacity> */}
+            {isSubmitting ? (
+              <View style={{ marginTop: 10 }}>
+                <ActivityIndicator />
+                <Text style={[styles.mascotText, { marginTop: 8 }]}>저장 중...</Text>
+              </View>
+            ) : (
+              <Text style={styles.mascotText}>다 됐으면 저를 눌러주세요!</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -109,7 +122,7 @@ function TimeInput({
     const d = onlyDigits(txt).slice(0, 2);
     if (d.length === 0) return onChange({ ...value, hour: '' });
     if (d.length === 1) {
-      const first = Math.min(Number(d), 2);            // 0~2
+      const first = Math.min(Number(d), 2); // 0~2
       return onChange({ ...value, hour: String(first) });
     }
     const num = clampNum(Number(d), 0, 23);
@@ -121,7 +134,7 @@ function TimeInput({
     const d = onlyDigits(txt).slice(0, 2);
     if (d.length === 0) return onChange({ ...value, minute: '' });
     if (d.length === 1) {
-      const first = Math.min(Number(d), 5);            // 0~5
+      const first = Math.min(Number(d), 5); // 0~5
       return onChange({ ...value, minute: String(first) });
     }
     const num = clampNum(Number(d), 0, 59);
@@ -156,7 +169,7 @@ function TimeInput({
         inputMode="numeric"
         maxLength={2}
         textAlign="center"
-        blurOnSubmit={false}                 // ✅ 포커스 유지 보조
+        blurOnSubmit={false}
         accessibilityLabel={`${a11yLabel} - 시`}
       />
       <Text style={styles.colon}>:</Text>
@@ -171,7 +184,7 @@ function TimeInput({
         inputMode="numeric"
         maxLength={2}
         textAlign="center"
-        blurOnSubmit={false}                 // ✅ 포커스 유지 보조
+        blurOnSubmit={false}
         accessibilityLabel={`${a11yLabel} - 분`}
       />
     </View>
