@@ -13,12 +13,11 @@ import {
 } from 'react-native';
 import { launchCamera, launchImageLibrary, Asset } from 'react-native-image-picker';
 import { useRouter } from 'expo-router';
-import type { Href } from 'expo-router'; // ✅ Href 타입 가져오기
+import type { Href } from 'expo-router';
 import { colors } from '@styles/colors';
 
-
 const messages = [
-  '처방전 사진을 찍어볼까요?\n저를 터치해주세요!',
+  '원하는 방법을 선택해주세요.',
   '사진을 확인해주세요!',
 ];
 
@@ -45,10 +44,6 @@ const ImagePickerScreen: React.FC = () => {
       }
     }
     return true;
-  };
-
-  const handleMascotPress = () => {
-    if (!image) handleImagePick();
   };
 
   const handleImagePick = () => {
@@ -88,7 +83,7 @@ const ImagePickerScreen: React.FC = () => {
     setStep(0);
   };
 
-  // ⬇️ “다음” → /ocr-processing 로 이동 (객체 href + 타입 보장)
+  // ⬇️ OCR 처리 화면으로 이동
   const handleNext = () => {
     const uri = image?.uri;
     if (!uri) {
@@ -99,15 +94,35 @@ const ImagePickerScreen: React.FC = () => {
     router.push(href);
   };
 
+  // ⬇️ 테이블 직접 입력 화면으로 이동
+  const goToTableInput = () => {
+    const href: Href = { pathname: '/ocr' };
+    router.push(href);
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={handleMascotPress} style={styles.mascotBox} activeOpacity={0.85}>
+        {/* 마스코트: 터치 불가, 단순 이미지 */}
+        <View style={styles.mascotBox}>
           <Image source={require('@assets/images/mascot.png')} style={styles.mascot} />
-        </TouchableOpacity>
+        </View>
 
         <Text style={styles.mascotText}>{messages[step]}</Text>
 
+        {/* 초기 선택 영역 */}
+        {step === 0 && (
+          <View style={styles.actionCol}>
+            <TouchableOpacity onPress={handleImagePick} style={[styles.button, styles.buttonPrimary]}>
+              <Text style={styles.buttonTextPrimary}>처방전 사진 등록</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={goToTableInput} style={[styles.button, styles.buttonSecondary]}>
+              <Text style={styles.buttonTextSecondary}>직접 입력</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 사진 미리보기 + 다음/다시 선택 */}
         {step === 1 && (
           <>
             <Image source={{ uri: image?.uri }} style={styles.preview} />
@@ -137,11 +152,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   container: {
-    flex: 1, // ✅ ScrollView가 전체 높이 사용
-    justifyContent: 'center', // ✅ 세로 중앙 정렬
+    flex: 1,
+    justifyContent: 'center', // 세로 중앙
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 40, // 필요 시 여백 조정
+    paddingVertical: 40,
   },
   mascotBox: { alignItems: 'center', marginTop: 12 },
   mascot: { width: 120, height: 120, resizeMode: 'contain' },
@@ -151,6 +166,12 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     textAlign: 'center',
     color: colors.textPrimary,
+  },
+  actionCol: {
+    marginTop: 18,
+    width: '100%',
+    maxWidth: 420,
+    gap: 10,
   },
   preview: {
     width: 260,
