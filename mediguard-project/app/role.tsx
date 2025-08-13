@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '@styles/colors';
-import { setUserRole } from './utils/user';
+import { setUserRole } from './_utils/user';
 
 export default function RoleSelect() {
   const router = useRouter();

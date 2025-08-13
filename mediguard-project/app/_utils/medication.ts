@@ -1,4 +1,4 @@
-// app/utils/medication.ts
+// app/_utils/medication.ts
 import { api } from './api';
 import { getUserId } from './auth';
 

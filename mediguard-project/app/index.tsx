@@ -1,11 +1,11 @@
-// app/login.tsx (또는 현재 파일 경로에 맞게)
+// app/index.tsx (또는 현재 파일 경로에 맞게)
 import React, { useMemo, useRef, useState } from 'react';
 import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './components';
+import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './_components';
 import { colors } from '../styles/colors';
-import { login } from './utils/auth';
-import { getErrorMessage } from './utils/api';
+import { login } from './_utils/auth';
+import { getErrorMessage } from './_utils/api';
 
 export default function LoginScreen() {
   const router = useRouter();

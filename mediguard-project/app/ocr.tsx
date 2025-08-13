@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { colors } from '@styles/colors';
-import { postOcrMedications } from './utils/medication';
+import { postOcrMedications } from './_utils/medication';
 
 type Row = {
   id: string;

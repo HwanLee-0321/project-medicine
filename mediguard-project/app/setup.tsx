@@ -7,7 +7,7 @@ import {
 import IntroOverlay from './IntroOverlay';
 import { useRouter } from 'expo-router';
 import { colors } from '@styles/colors';
-import { postMealTime } from './utils/medication'; // ✅ 분리한 도메인 함수 사용
+import { postMealTime } from './_utils/medication'; // ✅ 분리한 도메인 함수 사용
 
 const clampNum = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const onlyDigits = (s: string) => s.replace(/\D/g, '');

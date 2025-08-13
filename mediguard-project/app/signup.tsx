@@ -16,8 +16,8 @@ import {
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { colors } from '../styles/colors';
-import { checkDuplicateId, signUp, normalizeBirthdate } from './utils/auth';
-import { getErrorMessage } from './utils/api';
+import { checkDuplicateId, signUp, normalizeBirthdate } from './_utils/auth';
+import { getErrorMessage } from './_utils/api';
 
 export default function SignUpScreen() {
   const router = useRouter();

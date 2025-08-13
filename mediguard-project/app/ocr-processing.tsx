@@ -85,7 +85,7 @@ export default function OCRProcessingScreen() {
       );
 
       // 서버 URL
-      const serverUrl = 'http://192.168.111.134:8081/upload-image/';
+      const serverUrl = 'http://192.168.111.218:8000/upload-image/';
 
       const res = await fetch(serverUrl, {
         method: 'POST',
@@ -104,6 +104,7 @@ export default function OCRProcessingScreen() {
         .map((m, i) => ({
           id: `ocr-${i}`,
           name: (m.MED_NM ?? '').trim(),
+          dosage: m.DOSAGE != null ? String(m.DOSAGE) : '',
           timesPerDay: m.TIMES_PER_DAY != null ? String(m.TIMES_PER_DAY) : '',
           days: m.DURATION_DAYS != null ? String(m.DURATION_DAYS) : '',
         }))
