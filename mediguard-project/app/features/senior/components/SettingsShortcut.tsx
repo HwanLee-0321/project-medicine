@@ -13,7 +13,7 @@ export default function SettingsShortcut({ onBack }: { onBack: () => void }) {
           <Ionicons name="arrow-back" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>설정</Text>
-        <View style={{ width: 24 }} /> {/* 아이콘 오른쪽 빈 공간 */}
+        <View style={{ width: 24 }} />{/* 아이콘 오른쪽 빈 공간 */}
       </View>
 
       {/* 음성 안내 */}
