@@ -38,8 +38,6 @@ export default function Home() {
 
         {/* 3) 다음 복약 시간: 주황/피치 톤 카드 하나만 사용 */}
         <View style={styles.nextCard}>
-          <View style={{ height: 8 }} />
-          {/* NextMedication은 시간 텍스트만 렌더하도록(내부 카드 제거) */}
           <NextMedication />
         </View>
 
@@ -145,6 +143,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     alignItems: 'center',
+    
   },
   nextTitle: {
     color: colors.textSecondary,

@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     padding: 16,
     borderRadius: 12,
+    alignItems: 'center',
   },
   label: {
     fontSize: 28,
