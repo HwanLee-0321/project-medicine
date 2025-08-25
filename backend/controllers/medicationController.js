@@ -2,38 +2,91 @@ const Medications = require('../db/Medications');
 const MedicationSchedule = require('../db/Medication_schedule');
 const MealTime = require('../db/Meal_time');
 
-// OCR 데이터 저장 처리
+// 대문자/소문자/다른 키명까지 모두 안정적으로 흡수하는 정규화 함수
+function normalizeItem(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const name =
+    raw.name ??
+    raw.med_nm ??
+    raw.MED_NM ??
+    '';
+
+  const dosage =
+    raw.dosage ??
+    raw.DOSAGE ??
+    raw.dose ??
+    raw.DOSE ??
+    null;
+
+  const timesPerDay =
+    raw.timesPerDay ??
+    raw.times_per_day ??
+    raw.TIMES_PER_DAY ??
+    null;
+
+  const days =
+    raw.days ??
+    raw.duration_days ??
+    raw.DURATION_DAYS ??
+    null;
+
+  const nDosage = dosage === '' || dosage == null ? NaN : Number(dosage);
+  const nTimes  = timesPerDay === '' || timesPerDay == null ? NaN : Number(timesPerDay);
+  const nDays   = days === '' || days == null ? NaN : Number(days);
+
+  return {
+    med_nm: String(name ?? '').trim(),
+    dosage: Number.isFinite(nDosage) ? nDosage : NaN,
+    times_per_day: Number.isFinite(nTimes) ? nTimes : NaN,
+    duration_days: Number.isFinite(nDays) ? nDays : NaN,
+  };
+}
+
+// OCR 데이터 여러 항목 저장 처리 (배열)
 const handleOCRData = async (req, res) => {
-  const { user_id, med_nm, dosage, times_per_day, duration_days } = req.body;
+  const { user_id, items } = req.body;
 
-  // 필수 데이터 확인
-  if (!user_id || !med_nm || !dosage || !times_per_day || !duration_days) {
-    return res.status(400).json({ message: "❌ 필수 항목 누락" });  // 400: Bad Request
+  if (!user_id) return res.status(400).json({ message: 'user_id required' });
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'items required' });
   }
 
-  try {
-    const result = await Medications.create({
-      user_id,
-      med_nm,
-      dosage,
-      times_per_day,
-      duration_days
-    });
+  let ok = 0, fail = 0, firstErrorMessage = null;
 
-    console.log("✅ 저장 성공, 삽입된 ID:", result.id);
-    res.status(200).json({ message: "저장 성공", insertId: result.id });  // 200: OK
-  } catch (err) {
-    console.error("❌ Sequelize 저장 오류:", err);
-    res.status(500).json({ message: "서버 오류", error: err.message });  // 500: Internal Server Error
+  for (const raw of items) {
+    const it = normalizeItem(raw);
+    if (!it || !it.med_nm || Number.isNaN(it.dosage) || Number.isNaN(it.times_per_day) || Number.isNaN(it.duration_days)) {
+      fail++;
+      if (!firstErrorMessage) firstErrorMessage = '유효하지 않은 항목이 있습니다.';
+      continue;
+    }
+
+    try {
+      const result = await Medications.create({
+        user_id,
+        med_nm: it.med_nm,
+        dosage: it.dosage,
+        times_per_day: it.times_per_day,
+        duration_days: it.duration_days,
+      });
+      ok++;
+    } catch (err) {
+      fail++;
+      if (!firstErrorMessage) firstErrorMessage = err.message;
+    }
   }
+
+  return res.json({ ok, fail, firstErrorMessage });
 };
 
+
+// 복약 스케줄 저장 처리
 const handleSchedule = async (req, res) => {
   const { user_id, med_nm, dosage, scheduled_date, scheduled_time, status, taken_time } = req.body;
 
-  // 필수 데이터 확인 (상태(status)와 복용시간(taken_time)은 옵션일 수도 있으니 필수는 아님)
   if (!user_id || !med_nm || !dosage || !scheduled_date || !scheduled_time) {
-    return res.status(400).json({ message: "❌ 필수 항목 누락" });  // 400: Bad Request
+    return res.status(400).json({ message: "❌ 필수 항목 누락" });
   }
 
   try {
@@ -43,48 +96,43 @@ const handleSchedule = async (req, res) => {
       dosage,
       scheduled_date,
       scheduled_time,
-      status: status || 'n', // 상태가 없으면 기본값 'n' (not taken)
+      status: status || 'n',
       taken_time: taken_time || null,
     });
 
-    console.log("✅ 복약 스케줄 저장 성공, 삽입된 ID:", result.id);
-    res.status(200).json({ message: "복약 스케줄 저장 성공", insertId: result.id });  // 200: OK
+    return res.status(200).json({ message: "복약 스케줄 저장 성공", insertId: result.id });
   } catch (err) {
-    console.error("❌ Sequelize 저장 오류:", err);
-    res.status(500).json({ message: "서버 오류", error: err.message });  // 500: Internal Server Error
+    return res.status(500).json({ message: "서버 오류", error: err.message });
   }
 };
 
-// 복약 시간 저장
+
+// 복약 시간 정보 저장 및 수정 처리
 const mealTime = async (req, res) => {
   const { user_id, morning, lunch, dinner } = req.body;
 
-  // 필수 항목 체크 (user_id는 필수, 시간은 옵션일 수 있음)
   if (!user_id) {
     return res.status(400).json({ message: "❌ user_id는 필수입니다" });
   }
 
   try {
-    // 이미 user_id에 해당하는 레코드가 있는지 확인 (있으면 update, 없으면 insert)
     const existing = await MealTime.findOne({ where: { user_id } });
 
     if (existing) {
-      // 기존 레코드가 있으면 업데이트
       await MealTime.update(
         { morning, lunch, dinner },
         { where: { user_id } }
       );
       return res.status(200).json({ message: "복약 시간 정보가 업데이트 되었습니다." });
     } else {
-      // 없으면 새로 생성
       await MealTime.create({ user_id, morning, lunch, dinner });
       return res.status(201).json({ message: "복약 시간 정보가 저장되었습니다." });
     }
   } catch (err) {
-    console.error("❌ Sequelize 저장 오류:", err);
     return res.status(500).json({ message: "서버 오류", error: err.message });
   }
 };
+
 
 module.exports = {
   handleOCRData,
