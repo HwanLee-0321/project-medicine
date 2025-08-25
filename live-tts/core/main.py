@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 
 # 내부 모듈 임포트
 from .models import ChatRequest, TtsRequest
-from .services import gemini_service, tts_service
+from .service import gemini_service, tts_service
 
 app = FastAPI()
 

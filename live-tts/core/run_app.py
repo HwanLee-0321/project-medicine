@@ -11,6 +11,14 @@ FRONTEND_PORT = 5173
 
 def check_ngrok_auth():
     """ngrok 인증 토큰이 설정되었는지 확인하고, 없으면 설정을 요청합니다."""
+    # 1. 시스템 환경 변수에서 'NGROK_AUTH_TOKEN'을 먼저 확인합니다.
+    authtoken = os.environ.get("NGROK_AUTH_TOKEN")
+    if authtoken:
+        print("✅ 시스템 환경 변수에서 ngrok 인증 토큰을 발견했습니다.")
+        ngrok.set_auth_token(authtoken)
+        return # 토큰을 찾았으므로 함수 종료
+
+    # 2. 환경 변수가 없으면 기존 방식(pyngrok 설정 파일 또는 직접 입력)을 따릅니다.
     try:
         # pyngrok 설정 파일 경로 확인
         conf.get_default().config_path
@@ -18,14 +26,15 @@ def check_ngrok_auth():
         print("="*60)
         print("🚨 ngrok 인증 토큰(authtoken)이 설정되지 않았습니다.")
         print("1. https://dashboard.ngrok.com/get-started/your-authtoken 에서 토큰을 복사하세요.")
-        authtoken = input("2. 복사한 토큰을 여기에 붙여넣고 Enter를 누르세요: ")
-        if authtoken:
-            ngrok.set_auth_token(authtoken)
+        authtoken_input = input("2. 복사한 토큰을 여기에 붙여넣고 Enter를 누르세요: ")
+        if authtoken_input:
+            ngrok.set_auth_token(authtoken_input)
             print("✅ ngrok 인증 토큰이 성공적으로 설정되었습니다.")
         else:
             print("❌ 토큰이 입력되지 않았습니다. 스크립트를 종료합니다.")
             sys.exit(1)
         print("="*60)
+
 
 
 def run_command(command, name):

@@ -3,8 +3,8 @@ import google.generativeai as genai
 
 # Gemini API 키 설정 및 모델 초기화
 try:
-    genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash-lite')
+    genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+    gemini_model = genai.GenerativeModel('gemini-2.5-flash')
 except Exception as e:
     print(f"Gemini 모델 초기화 실패: {e}")
     gemini_model = None
