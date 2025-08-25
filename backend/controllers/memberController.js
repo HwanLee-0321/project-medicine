@@ -4,7 +4,6 @@ const {
   createUser,
   removeMember,
   updateUserFirstLogin,
-  updateUserRole,
 } = require('../models/memberModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -25,7 +24,6 @@ const signup = async (req, res) => {
     elder_birth,
     birth_type,
     sex,
-    is_elderly,
   } = req.body;
 
   if (
@@ -35,8 +33,7 @@ const signup = async (req, res) => {
     guard_mail === undefined ||
     elder_birth === undefined ||
     birth_type === undefined ||
-    sex === undefined ||
-    is_elderly === undefined
+    sex === undefined
   ) {
     return res.status(400).json({ message: '모든 항목을 입력하세요' });
   }
@@ -58,7 +55,6 @@ const signup = async (req, res) => {
       // 프론트에서 true/false, 0/1 등 다양하게 올 수 있으므로 서버에서 일관 변환
       birth_type: Boolean(birth_type),
       sex: Boolean(sex),
-      is_elderly: Boolean(is_elderly),
       delyn: 'N',
       first_login: 0, // tinyint(1) 사용 시 숫자로 관리하는 편이 명확
     });
@@ -175,32 +171,32 @@ const logout = (req, res) => {
   });
 };
 
-/**
- * 역할 저장/수정 (is_elderly)
- * - 업데이트 결과(affected)로 존재/성공 판정
- */
-const setUserRole = async (req, res) => {
-  const { user_id, is_elderly } = req.body; // 0/1 또는 true/false
+// /**
+//  * 역할 저장/수정 (is_elderly)
+//  * - 업데이트 결과(affected)로 존재/성공 판정
+//  */
+// const setUserRole = async (req, res) => {
+//   const { user_id, is_elderly } = req.body; // 0/1 또는 true/false
 
-  if (!user_id || is_elderly === undefined) {
-    return res
-      .status(400)
-      .json({ message: 'user_id와 is_elderly가 필요합니다' });
-  }
+//   if (!user_id || is_elderly === undefined) {
+//     return res
+//       .status(400)
+//       .json({ message: 'user_id와 is_elderly가 필요합니다' });
+//   }
 
-  try {
-    const isElderlyBool = !!Number(is_elderly); // '0'/'1' 방지
-    const affected = await updateUserRole(user_id, isElderlyBool);
+//   try {
+//     const isElderlyBool = !!Number(is_elderly); // '0'/'1' 방지
+//     const affected = await updateUserRole(user_id, isElderlyBool);
 
-    if (affected > 0) {
-      return res.json({ message: '역할 저장 완료' });
-    }
-    // 조건에 맞는 row 없음(존재X or delyn='Y')
-    return res.status(404).json({ message: '존재하지 않는 사용자입니다' });
-  } catch (err) {
-    console.error('setUserRole error:', err);
-    return res.status(500).json({ message: '서버 오류', error: err.message });
-  }
-};
+//     if (affected > 0) {
+//       return res.json({ message: '역할 저장 완료' });
+//     }
+//     // 조건에 맞는 row 없음(존재X or delyn='Y')
+//     return res.status(404).json({ message: '존재하지 않는 사용자입니다' });
+//   } catch (err) {
+//     console.error('setUserRole error:', err);
+//     return res.status(500).json({ message: '서버 오류', error: err.message });
+//   }
+// };
 
-module.exports = { signup, login, remove, checkUserId, logout, setUserRole };
+module.exports = { signup, login, remove, checkUserId, logout };

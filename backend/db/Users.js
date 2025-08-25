@@ -34,11 +34,6 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: false,  // DB 기본값 0 (여성)과 맞춤 (필요에 따라 true로 변경 가능)
   },
-  is_elderly: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false,  // DB 기본값 0 (보호자)와 맞춤
-  },
   delyn: {
     type: DataTypes.STRING(1),
     allowNull: true,
