@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontWeight: '700',
     color: colors.textPrimary,
-    fontSize: 15,
+    fontSize: 16,
   },
   input: {
     borderWidth: 2,
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     backgroundColor: colors.white,
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: 18,
   },
   inputFocused: {
     borderColor: colors.primary,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
   checkText: {
     fontWeight: '800',
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: 16,
   },
   button: {
     backgroundColor: colors.primary,
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   radioLabel: {
     color: colors.textPrimary,
-    fontSize: 16,
+    fontSize: 18,
   },
   disabled: {
     opacity: 0.6,
