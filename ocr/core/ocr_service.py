@@ -11,7 +11,7 @@ def extract_text_from_image(image_bytes: bytes):
     try:
         img = Image.open(io.BytesIO(image_bytes))
         
-        model = genai.GenerativeModel('models/gemini-2.5-flash-lite')
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
         
         # 명확하게 마크다운 형식으로 요청하고, 불필요한 설명을 제외하도록 프롬프트를 수정했습니다.
         prompt = [
