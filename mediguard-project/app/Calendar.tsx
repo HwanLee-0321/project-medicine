@@ -9,7 +9,8 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { Calendar, DateObject, LocaleConfig } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import type { DateData } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
 import { colors } from '@styles/colors';
 
@@ -99,11 +100,11 @@ export default function CalendarTab() {
     return dots;
   }, [visibleMonth, selectedDate]);
 
-  const handleDayPress = (day: DateObject) => {
+  const handleDayPress = (day: DateData) => {
     setSelectedDate((prev) => (prev === day.dateString ? null : day.dateString));
   };
 
-  const handleMonthChange = (m: DateObject) => {
+  const handleMonthChange = (m: DateData) => {
     const ym = `${m.year}-${pad2(m.month)}`;
     setVisibleMonth(ym);
     setSelectedDate(null);

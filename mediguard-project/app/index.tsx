@@ -1,11 +1,16 @@
 // app/index.tsx (또는 현재 파일 경로에 맞게)
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './_components';
 import { colors } from '../styles/colors';
-import { login } from './_utils/auth';
+import { login, isLoggedIn } from './_utils/auth';
+import { getEffectiveRole } from './_utils/user';
 import { getErrorMessage } from './_utils/api';
+
+const ELDERLY_HOME = '/features/senior';
+const CAREGIVER_HOME = '/features/caregiver';
+const ROLE_SELECT = '/setup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -13,6 +18,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [booting, setBooting] = useState(true); // 🔹 앱 진입 시 게이트용
 
   const idRef = useRef<TextInput>(null);
   const pwRef = useRef<TextInput>(null);
@@ -22,6 +28,39 @@ export default function LoginScreen() {
     [id, password]
   );
 
+  // 🔹 공통 분기 함수: 역할에 따라 라우팅
+  const routeByRole = useCallback(
+    (role: 'senior' | 'caregiver' | null | undefined) => {
+      switch (role) {
+        case 'senior':
+          router.replace(ELDERLY_HOME);
+          break;
+        case 'caregiver':
+          router.replace(CAREGIVER_HOME);
+          break;
+        default:
+          router.replace(ROLE_SELECT);
+      }
+    },
+    [router] // ✅ 의존성
+  );
+
+  // 🔹 앱 실행 시: 이미 로그인되어 있다면 즉시 분기
+  useEffect(() => {
+    (async () => {
+      try {
+        const loggedIn = await isLoggedIn();
+        if (loggedIn) {
+          const role = await getEffectiveRole(); // 사용자별 > 전역 > null
+          routeByRole(role);
+          return; // 분기했으면 더 이상 로그인 화면을 보여줄 필요 없음
+        }
+      } finally {
+        setBooting(false); // 로그인 안되어 있으면 로그인 화면 노출
+      }
+    })();
+  }, []);
+
   const handleLogin = async () => {
     if (!canSubmit || busy) {
       Alert.alert('아이디와 비밀번호를 입력해주세요.');
@@ -30,14 +69,25 @@ export default function LoginScreen() {
     try {
       setBusy(true);
       await login({ id: id.trim(), password });
-      // 로그인 성공 시 이동 (필요 경로로 변경 가능)
-      router.replace('/setup');
+
+      // 🔹 로그인 성공 직후에도 같은 분기 로직 적용
+      const role = await getEffectiveRole();
+      routeByRole(role);
     } catch (e) {
       Alert.alert(getErrorMessage(e, '로그인에 실패했어요.'));
     } finally {
       setBusy(false);
     }
   };
+
+  // 🔹 부팅 게이트 중에는 스피너만
+  if (booting) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <ScreenContainer keyboardOffset={Platform.select({ ios: 24, android: 0 }) as number}>
@@ -94,10 +144,11 @@ export default function LoginScreen() {
 
         <TextLink title="회원가입" onPress={() => router.push('/signup')} />
 
-        <TouchableOpacity onPress={() => router.push('/features/senior')} disabled={busy}>
+        {/* 개발 편의용 빠른 이동 버튼(원하면 제거) */}
+        <TouchableOpacity onPress={() => router.push(ELDERLY_HOME)} disabled={busy}>
           <Text>고령자로 이동</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/features/caregiver')} disabled={busy}>
+        <TouchableOpacity onPress={() => router.push(CAREGIVER_HOME)} disabled={busy}>
           <Text>보호자로 이동</Text>
         </TouchableOpacity>
       </View>

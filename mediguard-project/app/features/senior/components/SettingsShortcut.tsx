@@ -30,14 +30,22 @@ export default function SettingsShortcut({ onBack }: { onBack: () => void }) {
       {/* 기타 버튼들 */}
       <TouchableOpacity style={styles.actionButton}>
         <Text style={styles.actionButtonText}>복약 시간 재설정</Text>
+        onPress={() => router.push('./resetTime')}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton}>
         <Text style={styles.actionButtonText}>복약 목록 수정</Text>
+        onPress={() => router.push('./modifyList')}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.actionButton}>
         <Text style={styles.actionButtonText}>사용자 유형 변경</Text>
+        onPress={() => router.push('./resetRole')}
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.actionButton}>
+        <Text style={styles.actionButtonText}>로그아웃</Text>
+        onPress={() => router.push('./logout')}
       </TouchableOpacity>
     </View>
   );
