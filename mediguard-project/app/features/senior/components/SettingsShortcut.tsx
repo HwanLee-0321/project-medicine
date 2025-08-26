@@ -7,7 +7,7 @@ import { colors } from '@styles/colors';
 
 type Props = { onBack: () => void };
 
-export default function SettingsShortcut({ onBack }: Props) {
+export default function SettingsShortcut() {
   const [voiceGuideEnabled, setVoiceGuideEnabled] = useState(false);
   const router = useRouter();
 
@@ -16,7 +16,7 @@ export default function SettingsShortcut({ onBack }: Props) {
       <View style={styles.container}>
         {/* 상단바 */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onBack} style={styles.iconBtn} activeOpacity={0.6}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn} activeOpacity={0.6}>
             <Ionicons name="arrow-back" size={28} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>설정</Text>
