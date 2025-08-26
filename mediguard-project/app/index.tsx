@@ -1,5 +1,5 @@
-// app/index.tsx (또는 현재 파일 경로에 맞게)
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+// app/index.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './_components';
@@ -7,10 +7,12 @@ import { colors } from '../styles/colors';
 import { login, isLoggedIn } from './_utils/auth';
 import { getEffectiveRole } from './_utils/user';
 import { getErrorMessage } from './_utils/api';
+import { hasMealTime } from './_utils/medication';
 
 const ELDERLY_HOME = '/features/senior';
 const CAREGIVER_HOME = '/features/caregiver';
-const ROLE_SELECT = '/setup';
+const ROLE_SCREEN = '/role';
+const SETUP_SCREEN = '/setup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -18,7 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [booting, setBooting] = useState(true); // 🔹 앱 진입 시 게이트용
+  const [booting, setBooting] = useState(true);
 
   const idRef = useRef<TextInput>(null);
   const pwRef = useRef<TextInput>(null);
@@ -28,59 +30,81 @@ export default function LoginScreen() {
     [id, password]
   );
 
-  // 🔹 공통 분기 함수: 역할에 따라 라우팅
-  const routeByRole = useCallback(
-    (role: 'senior' | 'caregiver' | null | undefined) => {
-      switch (role) {
-        case 'senior':
-          router.replace(ELDERLY_HOME);
-          break;
-        case 'caregiver':
-          router.replace(CAREGIVER_HOME);
-          break;
-        default:
-          router.replace(ROLE_SELECT);
+  /** 공통 라우팅: 역할 → 복약시간 순으로 분기 */
+  const routeWithRoleAndMealTime = async () => {
+    try {
+      const role = await getEffectiveRole(); // 사용자별 > 전역 > null
+      if (role === 'senior') {
+        router.replace(ELDERLY_HOME);
+        return;
       }
-    },
-    [router] // ✅ 의존성
-  );
+      if (role === 'caregiver') {
+        router.replace(CAREGIVER_HOME);
+        return;
+      }
 
-  // 🔹 앱 실행 시: 이미 로그인되어 있다면 즉시 분기
+      // 역할이 없으면 복약 시간 설정 여부 확인
+      const has = await hasMealTime();
+      if (has) {
+        router.replace(ROLE_SCREEN); // 역할만 선택
+      } else {
+        router.replace(SETUP_SCREEN); // 먼저 복약 시간 설정
+      }
+    } catch (e) {
+      // 라우팅 단계 에러는 로그인 실패와 구분
+      console.warn('[Route] error:', e);
+      throw e;
+    }
+  };
+
+  /** 부팅 시: 이미 로그인되어 있으면 바로 분기 */
   useEffect(() => {
     (async () => {
       try {
         const loggedIn = await isLoggedIn();
         if (loggedIn) {
-          const role = await getEffectiveRole(); // 사용자별 > 전역 > null
-          routeByRole(role);
-          return; // 분기했으면 더 이상 로그인 화면을 보여줄 필요 없음
+          await routeWithRoleAndMealTime();
+          return;
         }
+      } catch (e) {
+        console.warn('[Boot] route error:', e);
       } finally {
-        setBooting(false); // 로그인 안되어 있으면 로그인 화면 노출
+        setBooting(false);
       }
     })();
   }, []);
 
+  /** 로그인 처리 (로그인 에러와 라우팅 에러를 분리) */
   const handleLogin = async () => {
     if (!canSubmit || busy) {
       Alert.alert('아이디와 비밀번호를 입력해주세요.');
       return;
     }
-    try {
-      setBusy(true);
-      await login({ id: id.trim(), password });
 
-      // 🔹 로그인 성공 직후에도 같은 분기 로직 적용
-      const role = await getEffectiveRole();
-      routeByRole(role);
+    setBusy(true);
+
+    // 1) 로그인만 먼저
+    try {
+      await login({ id: id.trim(), password });
+      console.log('[Login] OK');
     } catch (e) {
+      console.warn('[Login] error:', e);
       Alert.alert(getErrorMessage(e, '로그인에 실패했어요.'));
+      setBusy(false);
+      return; // 로그인 실패면 여기서 종료
+    }
+
+    // 2) 라우팅(역할/복약시간) 단계
+    try {
+      await routeWithRoleAndMealTime();
+    } catch (e) {
+      console.warn('[Route after login] error:', e);
+      Alert.alert(getErrorMessage(e, '로그인 후 이동 중 문제가 발생했어요.'));
     } finally {
       setBusy(false);
     }
   };
 
-  // 🔹 부팅 게이트 중에는 스피너만
   if (booting) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

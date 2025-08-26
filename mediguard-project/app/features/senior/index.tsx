@@ -29,7 +29,12 @@ export default function Home() {
           {/* 말풍선 (버튼 폭과 동일: width 100%) */}
           <View style={styles.speechWrap}>
             <View style={styles.speechBubble}>
-              <Text style={styles.bubbleText}>대화를 원하시면{'\n'}저를 눌러주세요.</Text>
+              <TouchableOpacity
+                onPress={() => router.push('/Calendar')}
+                accessibilityLabel="챗봇으로 이동"
+              >
+                <Text style={styles.bubbleText}>대화를 원하시면{'\n'}말풍선을 눌러주세요.</Text>
+              </TouchableOpacity>
             </View>
             {/* 말풍선 꼬리 */}
             <View style={styles.tail} />
@@ -143,7 +148,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
     alignItems: 'center',
-    
+
   },
   nextTitle: {
     color: colors.textSecondary,
