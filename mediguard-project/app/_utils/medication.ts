@@ -2,7 +2,10 @@
 import { getUserId } from './auth';
 import { postJSON, getErrorMessage, isAxiosError } from './api';
 
-/** 식사(복약) 시간 저장 */
+/** ================================
+ * 1) 복약 시간(식사 시간) 저장
+ * ================================ */
+
 type MealTimePayload = {
   user_id: string;
   morning: string; // "HH:mm"
@@ -14,14 +17,16 @@ export async function postMealTime(times: Omit<MealTimePayload, 'user_id'>) {
   const user_id = await getUserId();
   if (!user_id) throw new Error('로그인이 필요합니다.');
 
-  // ✅ postJSON은 res.data를 바로 반환 (자동 페일오버 + Toast 내장)
   return await postJSON<{ message: string }>('/medication/time', {
     user_id,
     ...times,
   });
 }
 
-/** OCR 입력(약 정보) 저장 - 여러 행을 개별 insert */
+/** ==========================================
+ * 2) OCR 결과(약 정보) 저장 - 여러 행 개별 insert
+ * ========================================== */
+
 type OcrItem = {
   name: string;        // med_nm
   dosage: string;      // number string
@@ -33,7 +38,6 @@ export async function postOcrMedications(items: OcrItem[]) {
   const user_id = await getUserId();
   if (!user_id) throw new Error('로그인이 필요합니다.');
 
-  // 백엔드 스키마 매핑 (+ 숫자 파싱 안전화)
   const toNum = (s: string) => {
     const n = Number(s);
     return Number.isFinite(n) ? n : 0;
@@ -51,7 +55,6 @@ export async function postOcrMedications(items: OcrItem[]) {
   let fail = 0;
   let firstErrorMessage: string | undefined;
 
-  // ✅ 병렬 저장 (allSettled로 개별 성공/실패 모두 집계)
   const results = await Promise.allSettled(
     payloads.map((p) =>
       postJSON<{ message: string; insertId: number }>('/medication/ocr', p)
@@ -64,7 +67,7 @@ export async function postOcrMedications(items: OcrItem[]) {
     } else {
       fail += 1;
       if (!firstErrorMessage) {
-        const err = r.reason;
+        const err = r.reason as any;
         firstErrorMessage = isAxiosError(err)
           ? getErrorMessage(err, '저장 실패')
           : (err?.message as string) || '저장 실패';
@@ -73,4 +76,34 @@ export async function postOcrMedications(items: OcrItem[]) {
   }
 
   return { ok, fail, firstErrorMessage };
+}
+
+/** ==========================================
+ * 3) 복약 시간 설정 조회 / 존재 여부 확인
+ * ========================================== */
+
+export type MealTimeReadResponse = {
+  morning?: string | null;
+  lunch?: string | null;
+  dinner?: string | null;
+} | null;
+
+/** 복약 시간 설정 조회 */
+export async function fetchMealTime(): Promise<MealTimeReadResponse> {
+  const user_id = await getUserId();
+  if (!user_id) throw new Error('로그인이 필요합니다.');
+
+  // ✅ 서버에서 상세값을 반환하는 엔드포인트
+  return await postJSON<MealTimeReadResponse>('/medication/time/read', { user_id });
+}
+
+/** 복약 시간 설정이 하나라도 있으면 true */
+export async function hasMealTime(): Promise<boolean> {
+  try {
+    const t = await fetchMealTime();
+    if (!t) return false;
+    return Boolean(t.morning || t.lunch || t.dinner);
+  } catch {
+    return false;
+  }
 }
