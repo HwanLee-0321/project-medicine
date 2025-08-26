@@ -9,11 +9,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function MedicationTimeTab() {
   const [morning, setMorning] = useState('');
   const [lunch, setLunch] = useState('');
   const [dinner, setDinner] = useState('');
+  const router = useRouter();
 
   // 앱 시작 시 저장된 시간 불러오기 + 로그 출력
   useEffect(() => {
@@ -59,6 +62,11 @@ export default function MedicationTimeTab() {
 
   return (
     <View style={styles.container}>
+      {/* 뒤로가기 버튼 */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+
       <Text style={styles.modalTitle}>복약 시간 입력</Text>
 
       <TextInput
@@ -88,10 +96,17 @@ export default function MedicationTimeTab() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  container: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 20 },
+  backButton: {
+    position: 'absolute',
+    top: 40, // 살짝 아래쪽
+    left: 15,
+    zIndex: 10,
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    marginTop: 80, // 뒤로가기 버튼과 겹치지 않도록 여백
     marginBottom: 15,
   },
   input: {
