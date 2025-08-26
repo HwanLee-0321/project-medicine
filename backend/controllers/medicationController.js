@@ -83,9 +83,9 @@ const handleOCRData = async (req, res) => {
 
 // 복약 스케줄 저장 처리
 const handleSchedule = async (req, res) => {
-  const { user_id, med_nm, dosage, scheduled_date, scheduled_time, status, taken_time } = req.body;
+  const { user_id, med_nm, dosage, scheduled_date, meal_time, status, taken_time } = req.body;
 
-  if (!user_id || !med_nm || !dosage || !scheduled_date || !scheduled_time) {
+  if (!user_id || !med_nm || !dosage || !scheduled_date || !meal_time) {
     return res.status(400).json({ message: "❌ 필수 항목 누락" });
   }
 
@@ -95,7 +95,7 @@ const handleSchedule = async (req, res) => {
       med_nm,
       dosage,
       scheduled_date,
-      scheduled_time,
+      meal_time,
       status: status || 'n',
       taken_time: taken_time || null,
     });
@@ -133,9 +133,67 @@ const mealTime = async (req, res) => {
   }
 };
 
+const readMealTime = async (req, res) => {
+  const { user_id } = req.body;  // body에서 user_id 받음
+
+  if (!user_id) {
+    return res.status(400).json({ message: "❌ user_id는 필수입니다" });
+  }
+
+  try {
+    const record = await MealTime.findOne({ where: { user_id } });
+
+    if (!record) {
+      // 값이 없으면 null 반환
+      return res.json(null);
+    }
+
+    // morning, lunch, dinner만 반환
+    return res.json({
+      morning: record.morning,
+      lunch: record.lunch,
+      dinner: record.dinner
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "서버 오류", error: err.message });
+  }
+};
+
+const readOCRData = async (req, res) => {
+  const { user_id } = req.body;  // POST 기준, body에서 user_id 받음
+
+  if (!user_id) {
+    return res.status(400).json({ message: "❌ user_id는 필수입니다" });
+  }
+
+  try {
+    const records = await Medications.findAll({
+      where: { user_id },
+      order: [['created_at', 'ASC']]
+    });
+
+    if (!records || records.length === 0) {
+      return res.json([]);
+    }
+
+    // 필요한 컬럼만 반환
+    const data = records.map(r => ({
+      med_nm: r.med_nm,
+      dosage: r.dosage,
+      times_per_day: r.times_per_day,
+      duration_days: r.duration_days,
+    }));
+
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ message: "서버 오류", error: err.message });
+  }
+}
 
 module.exports = {
   handleOCRData,
   handleSchedule,
-  mealTime
+  mealTime,
+  readMealTime,
+  readOCRData
 };

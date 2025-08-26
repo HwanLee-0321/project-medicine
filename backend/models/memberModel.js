@@ -86,10 +86,20 @@ async function updateUserRole(user_id, isElderlyBool) {
   return affected;
 }
 
+async function getElderNm(user_id) {
+  const user = await User.findOne({
+    where: { user_id, delyn: 'N' }, // 탈퇴하지 않은 사용자만
+    attributes: ['elder_nm'],      // elder_nm 컬럼만 가져오기
+  });
+
+  return user ? user.elder_nm : null;
+}
+
 module.exports = {
   getUserById,
   createUser,
   removeMember,
   updateUserFirstLogin,
   updateUserRole,
+  getElderNm
 };

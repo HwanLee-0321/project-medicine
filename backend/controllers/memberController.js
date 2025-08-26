@@ -4,6 +4,7 @@ const {
   createUser,
   removeMember,
   updateUserFirstLogin,
+  getElderNm
 } = require('../models/memberModel');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -171,6 +172,29 @@ const logout = (req, res) => {
   });
 };
 
+const name = async (req, res) => {
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ message: 'user_id는 필수입니다.' });
+  }
+
+  try {
+    const elder_nm = await getElderNm(user_id);
+
+    if (!elder_nm) {
+      return res.status(404).json('존재하지 않는 사용자이거나 탈퇴한 회원입니다.');
+    }
+
+    // 값만 바로 반환
+    return res.json(elder_nm);
+  } catch (err) {
+    console.error('name error:', err);
+    return res.status(500).json({ message: '서버 오류', error: err.message });
+  }
+};
+
+
 // /**
 //  * 역할 저장/수정 (is_elderly)
 //  * - 업데이트 결과(affected)로 존재/성공 판정
@@ -199,4 +223,4 @@ const logout = (req, res) => {
 //   }
 // };
 
-module.exports = { signup, login, remove, checkUserId, logout };
+module.exports = { signup, login, remove, checkUserId, logout, name };

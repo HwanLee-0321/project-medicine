@@ -29,7 +29,7 @@ const MedicationSchedule = sequelize.define('MedicationSchedule', {
     type: DataTypes.DATEONLY,
     allowNull: false,
   },
-  scheduled_time: {
+  meal_time: {
     type: DataTypes.TIME,
     allowNull: false,
   },
