@@ -10,6 +10,7 @@ router.post('/delete', remove);  // 탈퇴
 router.get('/check-id', checkUserId);
 router.post('/logout', logout);
 
-router.get('/name', name);
+// GET 요청은 params로 user_id 받기
+router.get('/name/:user_id', name);
 
 module.exports = router;
