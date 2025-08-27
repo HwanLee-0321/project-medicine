@@ -7,29 +7,27 @@ function normalizeItem(raw) {
   if (!raw || typeof raw !== 'object') return null;
 
   const name =
-    raw.name ??
-    raw.med_nm ??
-    raw.MED_NM ??
-    '';
+    raw.name ?? raw.med_nm ?? raw.MED_NM ?? '';
 
   const dosage =
-    raw.dosage ??
-    raw.DOSAGE ??
-    raw.dose ??
-    raw.DOSE ??
-    null;
+    raw.dosage ?? raw.DOSAGE ?? raw.dose ?? raw.DOSE ?? null;
 
   const timesPerDay =
-    raw.timesPerDay ??
-    raw.times_per_day ??
-    raw.TIMES_PER_DAY ??
-    null;
+    raw.timesPerDay ?? raw.times_per_day ?? raw.TIMES_PER_DAY ?? null;
 
   const days =
-    raw.days ??
-    raw.duration_days ??
-    raw.DURATION_DAYS ??
-    null;
+    raw.days ?? raw.duration_days ?? raw.DURATION_DAYS ?? null;
+
+  // ✅ 문자열 → boolean/null 변환
+  const parseBool = (val) => {
+    if (val === true || val === 'true' || val === 1 || val === '1') return true;
+    if (val === false || val === 'false' || val === 0 || val === '0') return false;
+    return null; // 값이 없거나 이상한 값일 경우 null
+  };
+
+  const morning = parseBool(raw.morning ?? raw.MORNING ?? null);
+  const lunch   = parseBool(raw.lunch ?? raw.LUNCH ?? null);
+  const dinner  = parseBool(raw.dinner ?? raw.DINNER ?? null);
 
   const nDosage = dosage === '' || dosage == null ? NaN : Number(dosage);
   const nTimes  = timesPerDay === '' || timesPerDay == null ? NaN : Number(timesPerDay);
@@ -40,8 +38,12 @@ function normalizeItem(raw) {
     dosage: Number.isFinite(nDosage) ? nDosage : NaN,
     times_per_day: Number.isFinite(nTimes) ? nTimes : NaN,
     duration_days: Number.isFinite(nDays) ? nDays : NaN,
+    // morning,
+    // lunch,
+    // dinner,
   };
 }
+
 
 // OCR 데이터 여러 항목 저장 처리 (배열)
 const handleOCRData = async (req, res) => {
@@ -63,12 +65,16 @@ const handleOCRData = async (req, res) => {
     }
 
     try {
-      const result = await Medications.create({
+      await Medications.create({
         user_id,
         med_nm: it.med_nm,
         dosage: it.dosage,
         times_per_day: it.times_per_day,
         duration_days: it.duration_days,
+        // ✅ 새 컬럼 저장
+        // morning: it.morning,
+        // lunch: it.lunch,
+        // dinner: it.dinner,
       });
       ok++;
     } catch (err) {
@@ -107,7 +113,7 @@ const handleSchedule = async (req, res) => {
 };
 
 
-// 복약 시간 정보 저장 및 수정 처리
+// 복약 시간 정보 저장 및 수정 처리 (MealTime 테이블)
 const mealTime = async (req, res) => {
   const { user_id, morning, lunch, dinner } = req.body;
 
@@ -144,11 +150,9 @@ const readMealTime = async (req, res) => {
     const record = await MealTime.findOne({ where: { user_id } });
 
     if (!record) {
-      // 값이 없으면 null 반환
       return res.json(null);
     }
 
-    // morning, lunch, dinner만 반환
     return res.json({
       morning: record.morning,
       lunch: record.lunch,
@@ -160,7 +164,7 @@ const readMealTime = async (req, res) => {
 };
 
 const readOCRData = async (req, res) => {
-  const { user_id } = req.body;  // POST 기준, body에서 user_id 받음
+  const { user_id } = req.body;
 
   if (!user_id) {
     return res.status(400).json({ message: "❌ user_id는 필수입니다" });
@@ -176,12 +180,15 @@ const readOCRData = async (req, res) => {
       return res.json([]);
     }
 
-    // 필요한 컬럼만 반환
+    // ✅ 새 컬럼 포함해서 반환
     const data = records.map(r => ({
       med_nm: r.med_nm,
       dosage: r.dosage,
       times_per_day: r.times_per_day,
       duration_days: r.duration_days,
+      // morning: r.morning,
+      // lunch: r.lunch,
+      // dinner: r.dinner,
     }));
 
     return res.json(data);

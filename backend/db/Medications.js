@@ -36,7 +36,22 @@ const Medication = sequelize.define('Medication', {
     type: DataTypes.DATE,
     allowNull: true,
     defaultValue: DataTypes.NOW,
-  }
+  },
+  // morning: {
+  //   type: DataTypes.BOOLEAN,
+  //   allowNull: true,
+  //   defaultValue: null,
+  // // },
+  // // lunch: {
+  // //   type: DataTypes.BOOLEAN,
+  // //   allowNull: true,
+  // //   defaultValue: null,
+  // // },
+  // // dinner: {
+  // //   type: DataTypes.BOOLEAN,
+  // //   allowNull: true,
+  // //   defaultValue: null,
+  // // }
 }, {
   tableName: 'medications',
   timestamps: false  // createdAt, updatedAt 자동관리 안 할 경우 false
