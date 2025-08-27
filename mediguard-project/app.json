@@ -16,7 +16,7 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jinsol_1207.mediguardproject",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",

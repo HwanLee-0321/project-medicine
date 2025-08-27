@@ -96,7 +96,7 @@ const ImagePickerScreen: React.FC = () => {
 
   // ⬇️ 테이블 직접 입력 화면으로 이동
   const goToTableInput = () => {
-    const href: Href = { pathname: '/ocr' };
+    const href: Href = { pathname: '/medications' };
     router.push(href);
   };
 

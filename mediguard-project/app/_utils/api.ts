@@ -13,44 +13,32 @@ import Toast from 'react-native-toast-message';
  * Util: base URL normalize (끝에 /api 보정)
  * ========================================= */
 const normalizeBase = (raw?: string | null) => {
-  if (!raw) return undefined;
+  if (!raw) throw new Error('[API] baseURL is missing in app.json (expo.extra.baseURL)');
   const trimmed = raw.trim().replace(/\/+$/, '');
   return /\/api$/.test(trimmed) ? trimmed : `${trimmed}/api`;
 };
 
 /** =========================================
- * app.json(extra)에서 주소 읽기
+ * app.json(extra)에서 baseURL 읽기
  * ========================================= */
 const extra: any =
   (Constants.expoConfig?.extra as any) ??
   ((Constants as any).manifest?.extra as any) ??
   {};
 
-// ⚠️ 필수: baseURL 없으면 앱 시작 시 즉시 실패 (설정 실수 조기 발견)
-let BASE_URL = normalizeBase(extra?.baseURL as string | undefined);
-if (!BASE_URL) {
-  throw new Error('[API] extra.baseURL is missing in app.json (expo.extra.baseURL)');
-}
+const BASE_URL = normalizeBase(extra?.baseURL as string | undefined);
 
 /** =========================================
- * Axios instance (단일 서버)
+ * Axios instance (고정 서버)
  * ========================================= */
-const makeClient = (baseURL: string) =>
-  axios.create({
-    baseURL,
-    timeout: 12000,
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    },
-  });
-
-let client = makeClient(BASE_URL);
-
-/** =========================================
- * Active base URL 조회
- * ========================================= */
-export const getActiveBaseURL = () => client.defaults.baseURL ?? '';
+const client = axios.create({
+  baseURL: BASE_URL,
+  timeout: 12000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
+});
 
 /** =========================================
  * Token Helpers
@@ -70,63 +58,58 @@ export async function getAccessToken() {
 /** =========================================
  * Interceptors
  * ========================================= */
-const attachInterceptors = (c: ReturnType<typeof makeClient>) => {
-  c.interceptors.request.use(
-    async (config) => {
-      try {
-        const token = await getAccessToken();
-        if (token) {
-          const headers = AxiosHeaders.from(config.headers);
-          headers.set('Authorization', `Bearer ${token}`);
-          config.headers = headers;
-        }
-      } catch {}
+client.interceptors.request.use(
+  async (config) => {
+    try {
+      const token = await getAccessToken();
+      if (token) {
+        const headers = AxiosHeaders.from(config.headers);
+        headers.set('Authorization', `Bearer ${token}`);
+        config.headers = headers;
+      }
+    } catch {}
 
-      if (__DEV__) {
-        console.log(`[API:REQ] ${c.defaults.baseURL}${config.url}`, {
-          method: config.method?.toUpperCase(),
-          params: config.params,
-          data: config.data,
-        });
-      }
-      return config;
-    },
-    (error) => Promise.reject(error)
-  );
-
-  c.interceptors.response.use(
-    (res: AxiosResponse) => {
-      if (__DEV__) {
-        console.log(`[API:RES] ${res.status} ${res.config.url}`, res.data);
-      }
-      return res;
-    },
-    async (error: AxiosError) => {
-      if (__DEV__) {
-        console.log('[API:ERR]', {
-          base: c.defaults.baseURL,
-          url: error.config?.url,
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message,
-          code: (error as any).code,
-        });
-      }
-      return Promise.reject(error);
+    if (__DEV__) {
+      console.log(`[API:REQ] ${config.baseURL}${config.url}`, {
+        method: config.method?.toUpperCase(),
+        params: config.params,
+        data: config.data,
+      });
     }
-  );
-};
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-// 인터셉터 장착
-attachInterceptors(client);
+client.interceptors.response.use(
+  (res: AxiosResponse) => {
+    if (__DEV__) {
+      console.log(`[API:RES] ${res.status} ${res.config.url}`, res.data);
+    }
+    return res;
+  },
+  async (error: AxiosError) => {
+    if (__DEV__) {
+      console.log('[API:ERR]', {
+        base: client.defaults.baseURL,
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+        code: (error as any).code,
+      });
+    }
+    return Promise.reject(error);
+  }
+);
 
 /** =========================================
- * 공통 요청 실행기 (단일 서버)
+ * 공통 요청 실행기 (항상 T 반환)
  * ========================================= */
 async function requestJSON<T>(cfg: AxiosRequestConfig): Promise<T> {
   try {
     const res = await client.request<T>(cfg);
-    return res.data;
+    return res.data as T;
   } catch (e) {
     const err = e as AxiosError;
 
@@ -139,7 +122,7 @@ async function requestJSON<T>(cfg: AxiosRequestConfig): Promise<T> {
     Toast.show({
       type: 'error',
       text1: '요청 실패',
-      text2: msg,
+      text2: String(msg),
       visibilityTime: 4000,
       position: 'bottom',
     });

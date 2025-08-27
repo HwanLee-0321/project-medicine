@@ -56,7 +56,7 @@ export default function OCRProcessingScreen() {
     // 이미지가 없어도 OCR 화면으로 바로 넘겨 사용자 입력 허용
     if (!previewUri) {
       router.replace({
-        pathname: '/ocr',
+        pathname: '/medications',
         params: { rows: JSON.stringify(makeEmptyRows()) },
       });
       return;
@@ -85,7 +85,7 @@ export default function OCRProcessingScreen() {
       );
 
       // 서버 URL
-      const serverUrl = 'http://192.168.111.218:8000/upload-image/';
+      const serverUrl = 'http://221.142.148.73:10005/upload-image/';
 
       const res = await fetch(serverUrl, {
         method: 'POST',
@@ -111,7 +111,7 @@ export default function OCRProcessingScreen() {
         .filter(r => r.name);
 
       router.replace({
-        pathname: '/ocr',
+        pathname: '/medications',
         params: {
           rows: JSON.stringify(rows.length ? rows : makeEmptyRows()), // 결과 없으면 빈행으로
         },
@@ -119,7 +119,7 @@ export default function OCRProcessingScreen() {
     } catch (e: any) {
       // 실패: 곧바로 /ocr로 보내고, 사용자 직접 입력
       router.replace({
-        pathname: '/ocr',
+        pathname: '/medications',
         params: {
           rows: JSON.stringify(makeEmptyRows()),
           // 필요하면 아래처럼 에러 문자열도 넘겨서 /ocr에서 토스트로 보여줄 수 있음

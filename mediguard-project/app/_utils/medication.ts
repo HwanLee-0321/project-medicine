@@ -83,10 +83,10 @@ export async function postOcrMedications(items: OcrItem[]) {
  * ========================================== */
 
 export type MealTimeReadResponse = {
-  morning?: string | null;
-  lunch?: string | null;
-  dinner?: string | null;
-} | null;
+  morning: string | null;
+  lunch: string | null;
+  dinner: string | null;
+}
 
 /** 복약 시간 설정 조회 */
 export async function fetchMealTime(): Promise<MealTimeReadResponse> {
