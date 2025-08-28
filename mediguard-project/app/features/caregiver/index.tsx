@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
-import FunctionMain from './components/Functionmain';
+import FunctionMain from './components/Dashboard';
 import Calendar from '@app/Calendar';
 
 export default function App() {

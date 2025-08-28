@@ -99,14 +99,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 20 },
   backButton: {
     position: 'absolute',
-    top: 40, // 살짝 아래쪽
+    top: 100, // 살짝 아래쪽
     left: 15,
     zIndex: 10,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginTop: 80, // 뒤로가기 버튼과 겹치지 않도록 여백
+    marginTop: 300, // 뒤로가기 버튼과 겹치지 않도록 여백
     marginBottom: 15,
   },
   input: {

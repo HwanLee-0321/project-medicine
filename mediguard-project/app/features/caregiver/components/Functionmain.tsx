@@ -90,8 +90,8 @@ export default function FunctionMain() {
       </View>
 
       <View style={styles.alertBox}>
-        <Text style={styles.alertText}>⚠️ 미복약 알림</Text>
-        <Text style={styles.alertSubText}>8월 6일 아침약 미복용</Text>
+        <Text style={styles.alertText}>⚠️ 미복약ss 알림</Text>
+        <Text style={styles.alertSubText}>8월 6일 아침약 미d복용</Text>
       </View>
       <View style={styles.alertBox}>
         <Text style={styles.alertText}>🚨 이상징후 감지</Text>
