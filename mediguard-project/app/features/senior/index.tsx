@@ -30,7 +30,7 @@ export default function Home() {
           <View style={styles.speechWrap}>
             <View style={styles.speechBubble}>
               <TouchableOpacity
-                onPress={() => router.push('/Calendar')}
+                onPress={() => router.push('./senior/components/Chat')}
                 accessibilityLabel="챗봇으로 이동"
               >
                 <Text style={styles.bubbleText}>대화를 원하시면{'\n'}말풍선을 눌러주세요.</Text>

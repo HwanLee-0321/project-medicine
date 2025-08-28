@@ -3,48 +3,101 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors } from '@styles/colors';
+import { postForm } from './_utils/api';
 
-type Row = { id: string; name: string; timesPerDay: string; days: string };
+/** ========= Types ========= */
+type Row = {
+  id: string;
+  name: string;
+  dosage: string;
+  timesPerDay: string;
+  days: string;
+  morning: boolean;
+  lunch: boolean;
+  dinner: boolean;
+};
 
 interface Medication {
-  MED_NM: string;
-  TIMES_PER_DAY: number;
-  DURATION_DAYS: number;
-  DOSAGE: number;
+  MED_NM?: string;
+  med_nm?: string;
+  TIMES_PER_DAY?: number;
+  times_per_day?: number;
+  DURATION_DAYS?: number;
+  duration_days?: number;
+  DOSAGE?: number;
+  dosage?: number;
+  [k: string]: any;
 }
+
 interface OcrResponse {
-  medicines: Medication[];
-  CREATED_AT: string;
+  medicines?: Medication[];
+  CREATED_AT?: string;
   error?: string;
   raw_text?: string;
 }
 
-const guessMime = (uri: string) => {
-  const ext = uri.split('.').pop()?.toLowerCase();
-  switch (ext) {
-    case 'png':
-      return 'image/png';
-    case 'webp':
-      return 'image/webp';
-    case 'heic':
-    case 'heif':
-      return 'image/heic';
-    case 'jpg':
-    case 'jpeg':
-    default:
-      return 'image/jpeg';
-  }
-};
-
-// 사용자가 직접 입력할 수 있도록 기본 4행 빈값 생성
+/** ========= Helpers ========= */
 const makeEmptyRows = (n = 4): Row[] =>
   Array.from({ length: n }).map((_, i) => ({
     id: `empty-${i}`,
     name: '',
+    dosage: '',
     timesPerDay: '',
     days: '',
+    morning: false,
+    lunch: false,
+    dinner: false,
   }));
 
+const normalizeMedication = (m: Medication, i: number): Row => {
+  const name = (m.MED_NM ?? m.med_nm ?? '').toString().trim();
+  const dosageNum = (m.DOSAGE ?? m.dosage ?? null);
+  const tpdNum = (m.TIMES_PER_DAY ?? m.times_per_day ?? null);
+  const daysNum = (m.DURATION_DAYS ?? m.duration_days ?? null);
+
+  return {
+    id: `ocr-${i}`,
+    name,
+    dosage: dosageNum != null ? String(dosageNum) : '',
+    timesPerDay: tpdNum != null ? String(tpdNum) : '',
+    days: daysNum != null ? String(daysNum) : '',
+    morning: false,
+    lunch: false,
+    dinner: false,
+  };
+};
+
+/** HEIC → JPEG 변환을 시도하되, 모듈이 없으면 폴백으로 통과 */
+async function toUploadable(imageUri: string) {
+  const lower = imageUri.toLowerCase();
+
+  // iOS HEIC/HEIF 처리
+  if (lower.endsWith('.heic') || lower.endsWith('.heif')) {
+    try {
+      // 동적 import: 모듈이 설치/링크되지 않아도 앱이 크래시 나지 않도록
+      const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
+      const out = await manipulateAsync(imageUri, [], {
+        compress: 0.9,
+        format: SaveFormat.JPEG,
+      });
+      return { uri: out.uri, name: 'photo.jpg', type: 'image/jpeg' as const };
+    } catch {
+      // 폴백: 변환 없이 JPEG 태그로 업로드 시도
+      return { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' as const };
+    }
+  }
+
+  // 그 외 확장자 → 안전한 MIME 유니언으로 지정
+  const ext = lower.split('.').pop() || 'jpg';
+  const type: 'image/jpeg' | 'image/png' | 'image/webp' =
+    ext === 'png'  ? 'image/png'
+  : ext === 'webp' ? 'image/webp'
+                   : 'image/jpeg';
+
+  return { uri: imageUri, name: `photo.${ext}`, type };
+}
+
+/** ========= Component ========= */
 export default function OCRProcessingScreen() {
   const router = useRouter();
   const { uri } = useLocalSearchParams<{ uri?: string }>();
@@ -53,7 +106,6 @@ export default function OCRProcessingScreen() {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    // 이미지가 없어도 OCR 화면으로 바로 넘겨 사용자 입력 허용
     if (!previewUri) {
       router.replace({
         pathname: '/medications',
@@ -70,66 +122,52 @@ export default function OCRProcessingScreen() {
 
   const runOCR = async (imageUri: string) => {
     try {
-      const mime = guessMime(imageUri);
-      const ext = mime.split('/')[1] || 'jpg';
+      // 1) 업로드 파일 준비(HEIC 변환 포함)
+      const file = await toUploadable(imageUri);
 
-      // ✅ RN/Expo에 안전한 파일 객체 방식 (blob 변환 불필요)
+      // 2) FormData 구성(서버 필드명이 'file'이라고 가정)
       const form = new FormData();
-      form.append(
-        'file',
-        {
-          uri: imageUri,
-          name: `photo.${ext}`,
-          type: mime,
-        } as any
-      );
+      form.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.type,
+      } as any);
 
-      // 서버 URL
-      const serverUrl = 'http://221.142.148.73:10005/upload-image/';
+      // 3) 공용 axios 인스턴스 사용(baseURL + /api 자동 보정)
+      const data = await postForm<OcrResponse>('/upload-image/', form);
 
-      const res = await fetch(serverUrl, {
-        method: 'POST',
-        body: form,
-      });
-
-      const data: OcrResponse = await res.json();
-
-      if (!res.ok || data?.error) {
-        throw new Error(data?.error || `서버 오류 (status ${res.status})`);
+      // 4) 서버 에러 처리
+      if (!data || data.error) {
+        throw new Error(data?.error || '서버 오류');
       }
 
-      // 성공: medicines → rows 매핑
+      // 5) 결과 정규화 → medications 화면으로 이동
       const meds = Array.isArray(data.medicines) ? data.medicines : [];
-      const rows: Row[] = meds
-        .map((m, i) => ({
-          id: `ocr-${i}`,
-          name: (m.MED_NM ?? '').trim(),
-          dosage: m.DOSAGE != null ? String(m.DOSAGE) : '',
-          timesPerDay: m.TIMES_PER_DAY != null ? String(m.TIMES_PER_DAY) : '',
-          days: m.DURATION_DAYS != null ? String(m.DURATION_DAYS) : '',
-        }))
-        .filter(r => r.name);
+      const rows = meds.map(normalizeMedication).filter(r => r.name.trim().length > 0);
 
       router.replace({
         pathname: '/medications',
         params: {
-          rows: JSON.stringify(rows.length ? rows : makeEmptyRows()), // 결과 없으면 빈행으로
+          rows: JSON.stringify(rows.length ? rows : makeEmptyRows()),
+          error: rows.length ? '' : '이미지에서 약명을 찾지 못했어요. 직접 입력해 주세요.',
         },
       });
     } catch (e: any) {
-      // 실패: 곧바로 /ocr로 보내고, 사용자 직접 입력
+      const msg =
+        (e?.response?.data?.message) ||
+        (e?.response?.data?.error) ||
+        e?.message ||
+        '이미지 인식에 실패했어요. 직접 입력해 주세요.';
       router.replace({
         pathname: '/medications',
         params: {
           rows: JSON.stringify(makeEmptyRows()),
-          // 필요하면 아래처럼 에러 문자열도 넘겨서 /ocr에서 토스트로 보여줄 수 있음
-          // error: e?.message ?? '이미지 인식에 실패했어요.'
+          error: String(msg),
         },
       });
     }
   };
 
-  // 이 화면은 잠깐 스피너만 보여줌 (미리보기/다시보기 없음)
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" />
@@ -139,6 +177,7 @@ export default function OCRProcessingScreen() {
   );
 }
 
+/** ========= Styles ========= */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
