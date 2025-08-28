@@ -1,14 +1,27 @@
 // components/NotificationSettingTab.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function NotificationSettingTab() {
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [emergencyAlert, setEmergencyAlert] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
+      {/* ← 뒤로가기 버튼 (왼쪽 상단, 더 아래로) */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+        accessibilityRole="button"
+        accessibilityLabel="뒤로가기"
+      >
+        <Ionicons name="arrow-back" size={24} color="#000" />
+      </TouchableOpacity>
+
       <View style={styles.card}>
         <Text style={styles.modalTitle}>알림 설정</Text>
 
@@ -51,7 +64,15 @@ const styles = StyleSheet.create({
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: 'rgba(0,0,0,0.2)' // 살짝 반투명 배경
+    backgroundColor: 'rgba(0,0,0,0.2)', // 살짝 반투명 배경
+  },
+  // ← 버튼 위치: 왼쪽 상단에서 더 아래
+  backButton: {
+    position: 'absolute',
+    top: 100,   // 이전 40 → 80으로 더 아래
+    left: 16,
+    padding: 6,
+    zIndex: 10,
   },
   card: {
     backgroundColor: '#fff',
@@ -59,8 +80,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     width: '80%',
     alignItems: 'center',
-    elevation: 5, // 그림자 (안드로이드)
-    shadowColor: '#000', // 그림자 (iOS)
+    elevation: 5,          // Android 그림자
+    shadowColor: '#000',   // iOS 그림자
     shadowOpacity: 0.2,
     shadowRadius: 5,
   },
