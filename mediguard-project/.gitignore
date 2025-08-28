@@ -4,6 +4,10 @@
 android/
 ios/
 
+# push 알림
+dev/
+push.ts
+
 # dependencies
 Node.js / Expo
 # ###################

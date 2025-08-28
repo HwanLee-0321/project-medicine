@@ -72,9 +72,15 @@ const sanitizeRows = (input: unknown): Row[] => {
   });
 };
 
+/** ✅ string | string[] 파라미터를 단일 문자열로 정규화 */
+const pickFirst = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v ?? undefined);
+
 export default function OCRScreen() {
   const router = useRouter();
-  const { rows: rowsParam } = useLocalSearchParams<{ rows?: string }>();
+
+  // ⬇️ rows/error 둘 다 배열 가능성이 있으므로 string | string[] 로 받는다
+  const { rows: rowsParam, error: errorParam } =
+    useLocalSearchParams<{ rows?: string | string[]; error?: string | string[] }>();
 
   // 4행 기본 제공(빈값)
   const [rows, setRows] = useState<Row[]>(
@@ -100,15 +106,26 @@ export default function OCRScreen() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!rowsParam) return;
+    const rawRows = pickFirst(rowsParam);
+    const rawErr  = pickFirst(errorParam);
+
+    // 에러 메시지가 넘어온 경우 알림(원하면 Toast로 대체 가능)
+    if (rawErr && typeof rawErr === 'string' && rawErr.trim()) {
+      Alert.alert('알림', rawErr);
+    }
+
+    if (!rawRows) return;
+
     try {
-      const parsed = JSON.parse(rowsParam);
+      const parsed = JSON.parse(rawRows);     // ← 이제 확실히 string
       const cleaned = sanitizeRows(parsed);
-      if (cleaned.length) setRows(cleaned);
+      if (cleaned.length) {
+        setRows(cleaned);                     // OCR 결과 반영
+      }
     } catch (e) {
       console.warn('rows 파라미터 파싱 실패', e);
     }
-  }, [rowsParam]);
+  }, [rowsParam, errorParam]);
 
   const totalMeds = useMemo(
     () => rows.filter(r => r.name.trim() !== '').length,
