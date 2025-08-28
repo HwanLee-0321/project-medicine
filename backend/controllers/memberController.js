@@ -173,7 +173,7 @@ const logout = (req, res) => {
 };
 
 const name = async (req, res) => {
-  const user_id = req.params.user_id;
+  const user_id = req.params.user_id;  // router에서 정의한 이름과 동일하게
   if (!user_id) {
     return res.status(400).json({ message: 'user_id는 필수입니다.' });
   }
@@ -183,13 +183,13 @@ const name = async (req, res) => {
     if (!elder_nm) {
       return res.status(404).json({ message: '존재하지 않는 사용자이거나 탈퇴한 회원입니다.' });
     }
-    // 문자열 반환을 객체 형태로 감싸기
     return res.json({ name: elder_nm });
   } catch (err) {
     console.error('getName error:', err);
     return res.status(500).json({ message: '서버 오류', error: err.message });
   }
 };
+
 
 
 

@@ -1,22 +1,32 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
-const cors = require('cors');  // 다른 도메인(출처)에서 오는 HTTP 요청을 허용
+const cors = require('cors');
 
-const memberRouter = require('./routes/memberRouter');
-const medicationRoutes = require('./routes/medicationRouter');
-const healthRoutes = require('./routes/healthRouter');
+const memberRouter = require('./routes/memberRouter'); // 기존 회원 라우터
+const medicationRouter = require('./routes/medicationRouter');
+const healthRouter = require('./routes/healthRouter');
+const calendarRouter = require('./routes/calendarRouter');
+
+const sequelize = require('./sequelize');
 
 const app = express();
-
-app.use(cors());  // 모든 출처에서 오는 요청을 허용 (클라이언트에서 자유롭게 API를 호출 가능)
-app.use(express.json());  // 클라이언트 요청 json으로 자동 파싱 미들웨어
+app.use(cors());
+app.use(express.json());
 
 // 라우터 등록
 app.use('/api/users', memberRouter);
-app.use('/api/medication', medicationRoutes);
-app.use('/api/health', healthRoutes)
+app.use('/api/medication', medicationRouter);
+app.use('/api/health', healthRouter);
+app.use('/api/calendar', calendarRouter);
 
-// 서버 실행
-app.listen(3050, () => {
-  console.log(`Server running on port 3050`);
-});
+// DB 연결 확인 후 서버 실행
+(async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('DB 연결 성공');
+        await sequelize.sync(); // 모델 기준 테이블 생성/동기화
+        app.listen(3050, () => console.log('Server running on port 3050'));
+    } catch (err) {
+        console.error('DB 연결 실패:', err);
+    }
+})();

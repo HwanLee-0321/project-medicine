@@ -1,34 +1,50 @@
 const HealthAlert = require('../db/Health_alerts');
+const DailyHealthLog = require('../db/DailyHealthLog');
 
-// 건강 이상 징후 저장
+// ✅ 건강 이상 징후 기록 + DailyHealthLog 업데이트
 exports.createAlert = async (req, res) => {
-  console.log('📥 POST 요청 도착:', req.body);
-  const { user_id, alert_type, detected_at } = req.body;
+  const { user_id, alert_type, meal_time } = req.body;
+  if (!user_id || !alert_type || !meal_time)
+    return res.status(400).json({ message: 'user_id/alert_type/meal_time required' });
 
   try {
+    const detected_at = new Date();
+    const logDate = detected_at.toISOString().split('T')[0];
+
+    // 1️⃣ HealthAlert 기록 생성
     const newAlert = await HealthAlert.create({ user_id, alert_type, detected_at });
-    res.status(201).json({ message: 'Alert created', alertId: newAlert.id });
+
+    // 2️⃣ DailyHealthLog 업데이트
+    const [dailyLog, created] = await DailyHealthLog.findOrCreate({
+      where: { user_id, log_date: logDate, meal_time },
+      defaults: { medication_count: 0, symptom_count: 1 },
+    });
+
+    if (!created) {
+      dailyLog.symptom_count += 1;
+      await dailyLog.save();
+    }
+
+    res.status(201).json({ message: 'Alert created', alertId: newAlert.id, dailyLog });
   } catch (err) {
-    console.error('Insert error:', err);  // 201: Created
-    res.status(500).json({ error: 'Database insert error' });  // 500: Internal Server Error
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
-// 전체 조회
+// 전체 HealthAlert 조회
 exports.getAlerts = async (req, res) => {
   try {
-    const alerts = await HealthAlert.findAll({ order: [['detected_at', 'DESC']] });  // 모든 HealthAlert 데이터를 detected_at 기준 내림차순 정렬
+    const alerts = await HealthAlert.findAll({ order: [['detected_at', 'DESC']] });
     res.json(alerts);
   } catch (err) {
-    console.error('Select error:', err);
-    res.status(500).json({ error: 'Database select error' });
+    res.status(500).json({ error: err.message });
   }
 };
 
-// 특정 사용자 이력 조회
+// 특정 사용자 HealthAlert 조회
 exports.getUserAlerts = async (req, res) => {
-  const userId = req.params.userId;  // URL 파라미터에서 userId 추출
-
+  const { userId } = req.params;
   try {
     const alerts = await HealthAlert.findAll({
       where: { user_id: userId },
@@ -36,7 +52,6 @@ exports.getUserAlerts = async (req, res) => {
     });
     res.json(alerts);
   } catch (err) {
-    console.error('User select error:', err);
-    res.status(500).json({ error: 'Database select error' });
+    res.status(500).json({ error: err.message });
   }
 };
