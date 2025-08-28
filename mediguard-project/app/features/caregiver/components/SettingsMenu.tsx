@@ -1,4 +1,4 @@
-// app/features/caregiver/SettingsMenu.tsx
+// app/features/caregiver/components/SettingsMenu.tsx
 import React from 'react';
 import {
   View,
@@ -79,7 +79,7 @@ export default function SettingsMenu() {
               <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
             </TouchableOpacity>
 
-            {/* ✅ 복약 데이터 관리 → 예전 달력 화면으로 이동 */}
+            {/* 복약 데이터 관리 → 달력 화면 */}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => go('/Calendar')}
@@ -87,6 +87,16 @@ export default function SettingsMenu() {
             >
               <Text style={styles.actionButtonText}>복약 데이터 관리</Text>
               <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            {/* ✅ 로그아웃 → logout.tsx로 이동 */}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.logout]}
+              onPress={() => go('/features/caregiver/components/logout')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionButtonText, styles.logoutText]}>로그아웃</Text>
+              <Ionicons name="log-out-outline" size={24} color={colors.onPrimary} />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -148,4 +158,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
+
+  logout: { backgroundColor: colors.danger, borderColor: colors.danger },
+  logoutText: { color: colors.onPrimary },
 });

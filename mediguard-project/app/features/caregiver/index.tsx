@@ -1,61 +1,23 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React from 'react';
+import { SafeAreaView, View, StyleSheet, Platform, StatusBar } from 'react-native';
 import FunctionMain from './components/Dashboard';
-import Calendar from '@app/Calendar';
+
+const TOP_OFFSET = Platform.select({
+  ios: 20,                                    // iOS 살짝 아래
+  android: (StatusBar.currentHeight ?? 0) + 8 // Android 상태바 + 여유
+});
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'Function' | 'Calendar'>('Function');
-
   return (
-    <View style={{ flex: 1 }}>
-      {/* 탭 메뉴 */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'Function' && styles.activeTab]}
-          onPress={() => setCurrentScreen('Function')}
-        >
-          <Text style={styles.tabText}></Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabButton, currentScreen === 'Calendar' && styles.activeTab]}
-          onPress={() => setCurrentScreen('Calendar')}
-        >
-          <Text style={styles.tabText}></Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.safe}>
+      <View style={[styles.container, { paddingTop: TOP_OFFSET }]}>
+        <FunctionMain />
       </View>
-
-      {/* 선택된 화면 */}
-      <View style={styles.screenContainer}>
-        {currentScreen === 'Function' && <FunctionMain />}
-        {currentScreen === 'Calendar' && <Calendar />}
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    height: 50,
-    flexDirection: 'row',
-    backgroundColor: '#eee',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  tabButton: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  activeTab: {
-    borderBottomWidth: 3,
-    borderBottomColor: '#2a5dab',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  screenContainer: {
-    flex: 1,
-  },
+  safe: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
 });

@@ -1,3 +1,4 @@
+// app/features/caregiver/components/FunctionMain.tsx
 import React from 'react';
 import {
   View,
@@ -7,27 +8,31 @@ import {
   Image,
   Dimensions,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@styles/colors';
 
+const cardShadow = Platform.select({
+  ios: {
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  android: { elevation: 3 },
+});
+
 export default function FunctionMain() {
   const router = useRouter();
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* 상단바: 대시보드 제목 + 설정 버튼 */}
+      {/* 상단바: 대시보드 제목만 */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>대시보드</Text>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => router.push('/features/caregiver/components/SettingsMenu')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="settings-outline" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
       </View>
 
       {/* 대시보드 본문 */}
@@ -80,25 +85,36 @@ export default function FunctionMain() {
           <Text style={styles.alertText}>🚨 이상징후 감지</Text>
           <Text style={styles.alertSubText}>어지러움 호소 (8월 6일)</Text>
         </View>
+
+        {/* ▼ 설정 버튼 (이상징후 감지 아래, 카드 형태) */}
+        <TouchableOpacity
+          style={styles.settingsCard}
+          activeOpacity={0.8}
+          onPress={() => router.push('/features/caregiver/components/SettingsMenu')}
+        >
+          <View style={styles.settingsLeft}>
+            <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
+            <Text style={styles.settingsText}>설정</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  // 상단 헤더 (senior SettingsShortcut 톤과 일치)
+  // 상단 헤더: 타이틀만 중앙 정렬
   header: {
     height: 56,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     backgroundColor: colors.background,
   },
   headerTitle: { fontSize: 24, fontWeight: '800', color: colors.textPrimary },
-  iconBtn: { padding: 6 },
 
   // 대시보드
   dashboardContainer: { flex: 1, backgroundColor: colors.background, padding: 20 },
@@ -111,6 +127,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.secondary,
     marginBottom: 20,
+    ...cardShadow,
   },
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
   profileText: { fontSize: 16, color: colors.textPrimary },
@@ -119,7 +136,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 16, fontWeight: 'bold', marginBottom: 6, color: colors.textPrimary,
   },
-  chart: { borderRadius: 12, backgroundColor: colors.white },
+  chart: { borderRadius: 12, backgroundColor: colors.white, ...cardShadow },
 
   alertBox: {
     backgroundColor: '#fffbe6',
@@ -133,4 +150,29 @@ const styles = StyleSheet.create({
     fontSize: 16, fontWeight: 'bold', color: colors.textPrimary, marginBottom: 4,
   },
   alertSubText: { fontSize: 15, color: colors.textSecondary },
+
+  // 설정 카드 버튼
+  settingsCard: {
+    marginTop: 16,
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#EFE7E1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    ...cardShadow,
+  },
+  settingsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  settingsText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
 });
