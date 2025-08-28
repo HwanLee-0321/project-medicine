@@ -2,33 +2,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { colors } from '@styles/colors';
-import { postForm } from './_utils/api';
 
 /** ========= Types ========= */
 type Row = {
   id: string;
   name: string;
-  dosage: string;
-  timesPerDay: string;
-  days: string;
+  dosage: string;        // 회당 복용량
+  timesPerDay: string;   // 일 복용 횟수
+  days: string;          // 복약 일수
   morning: boolean;
   lunch: boolean;
   dinner: boolean;
 };
 
 interface Medication {
-  MED_NM?: string;
-  med_nm?: string;
-  TIMES_PER_DAY?: number;
-  times_per_day?: number;
-  DURATION_DAYS?: number;
-  duration_days?: number;
-  DOSAGE?: number;
-  dosage?: number;
+  MED_NM?: string; med_nm?: string;
+  TIMES_PER_DAY?: number; times_per_day?: number;
+  DURATION_DAYS?: number; duration_days?: number;
+  DOSAGE?: number; dosage?: number;
   [k: string]: any;
 }
-
 interface OcrResponse {
   medicines?: Medication[];
   CREATED_AT?: string;
@@ -37,6 +32,19 @@ interface OcrResponse {
 }
 
 /** ========= Helpers ========= */
+const guessMime = (uri: string) => {
+  const ext = uri.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'png': return 'image/png';
+    case 'webp': return 'image/webp';
+    case 'heic':
+    case 'heif': return 'image/heic';
+    case 'jpg':
+    case 'jpeg':
+    default: return 'image/jpeg';
+  }
+};
+
 const makeEmptyRows = (n = 4): Row[] =>
   Array.from({ length: n }).map((_, i) => ({
     id: `empty-${i}`,
@@ -67,34 +75,79 @@ const normalizeMedication = (m: Medication, i: number): Row => {
   };
 };
 
-/** HEIC → JPEG 변환을 시도하되, 모듈이 없으면 폴백으로 통과 */
-async function toUploadable(imageUri: string) {
-  const lower = imageUri.toLowerCase();
+/** ========= Logging utils ========= */
+function uuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = (Math.random() * 16) | 0, v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
-  // iOS HEIC/HEIF 처리
-  if (lower.endsWith('.heic') || lower.endsWith('.heif')) {
-    try {
-      // 동적 import: 모듈이 설치/링크되지 않아도 앱이 크래시 나지 않도록
-      const { manipulateAsync, SaveFormat } = await import('expo-image-manipulator');
-      const out = await manipulateAsync(imageUri, [], {
-        compress: 0.9,
-        format: SaveFormat.JPEG,
-      });
-      return { uri: out.uri, name: 'photo.jpg', type: 'image/jpeg' as const };
-    } catch {
-      // 폴백: 변환 없이 JPEG 태그로 업로드 시도
-      return { uri: imageUri, name: 'photo.jpg', type: 'image/jpeg' as const };
-    }
+/** ========= LAN OCR 서버 주소 =========
+ * 우선순위:
+ * 1) app.json의 expo.extra.ocrBaseURL
+ * 2) app.json의 expo.extra.baseURL의 host를 재사용, 포트 8000 강제
+ */
+function getOcrBaseURL(): string {
+  const extra: any =
+    (Constants.expoConfig?.extra as any) ??
+    ((Constants as any).manifest?.extra as any) ??
+    {};
+
+  const rawOcr = (extra?.ocrBaseURL ?? '').toString().trim();
+  if (rawOcr) return rawOcr.replace(/\/+$/, '');
+
+  const rawApi = (extra?.baseURL ?? '').toString().trim();
+  if (!rawApi) throw new Error('baseURL가 설정되어 있지 않습니다. app.json을 확인하세요.');
+
+  // baseURL에서 host를 추출하고 포트 8000으로 바꾼다 (예: http://192.168.111.218:3000 -> http://192.168.111.218:8000)
+  try {
+    const u = new URL(rawApi);
+    u.port = '8000';
+    u.pathname = '/';
+    return u.toString().replace(/\/+$/, '');
+  } catch {
+    // 파싱 실패 시, 사용자가 직접 extra.ocrBaseURL을 넣도록 유도
+    throw new Error('ocrBaseURL를 직접 설정해주세요 (예: "http://192.168.111.218:8000")');
   }
+}
 
-  // 그 외 확장자 → 안전한 MIME 유니언으로 지정
-  const ext = lower.split('.').pop() || 'jpg';
-  const type: 'image/jpeg' | 'image/png' | 'image/webp' =
-    ext === 'png'  ? 'image/png'
-  : ext === 'webp' ? 'image/webp'
-                   : 'image/jpeg';
+/** 요청 1회 실행: reqId + 타임아웃 + 안전 파싱 + 상세 로그 */
+async function postOnceWithLogs(url: string, form: FormData, timeoutMs = 20000) {
+  const reqId = uuid();
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
 
-  return { uri: imageUri, name: `photo.${ext}`, type };
+  form.append('req_id', reqId); // 서버에서 추적하기 쉽게 폼에도 포함
+
+  console.log(`[OCR][REQ ${reqId}] POST ${url}`);
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: form,
+      signal: ctrl.signal,
+      headers: { 'X-Req-Id': reqId }, // 서버 미들웨어에서 확인 가능
+    });
+
+    const ctype = res.headers.get('content-type') || '';
+    const bodyText = await res.text();
+
+    console.log(`[OCR][RES ${reqId}] status=${res.status} len=${bodyText.length}`);
+
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${bodyText.slice(0, 200)}`);
+
+    if (!ctype.includes('application/json')) {
+      throw new Error(`Non-JSON response: ${bodyText.slice(0, 200)}`);
+    }
+    const data = JSON.parse(bodyText);
+    return { data: data as OcrResponse, reqId };
+  } catch (e: any) {
+    clearTimeout(timer);
+    console.log(`[OCR][ERR ${reqId}] ${e?.message || e}`);
+    throw e;
+  }
 }
 
 /** ========= Component ========= */
@@ -122,27 +175,28 @@ export default function OCRProcessingScreen() {
 
   const runOCR = async (imageUri: string) => {
     try {
-      // 1) 업로드 파일 준비(HEIC 변환 포함)
-      const file = await toUploadable(imageUri);
+      // 기본 로그: 현재 OCR base 확인
+      console.log('[OCR] base =', getOcrBaseURL());
 
-      // 2) FormData 구성(서버 필드명이 'file'이라고 가정)
+      const mime = guessMime(imageUri);
+      const ext = mime.split('/')[1] || 'jpg';
+
       const form = new FormData();
-      form.append('file', {
-        uri: file.uri,
-        name: file.name,
-        type: file.type,
-      } as any);
+      form.append('file', { uri: imageUri, name: `photo.${ext}`, type: mime } as any);
 
-      // 3) 공용 axios 인스턴스 사용(baseURL + /api 자동 보정)
-      const data = await postForm<OcrResponse>('/upload-image/', form);
+      const base = getOcrBaseURL();
+      // 슬래시 유무 모두 시도 (프록시/서버 환경에 따라 301/404 피하기 위함)
+      const url1 = `${base}/upload-image`;
+      const url2 = `${base}/upload-image/`;
 
-      // 4) 서버 에러 처리
-      if (!data || data.error) {
-        throw new Error(data?.error || '서버 오류');
-      }
+      const { data } = await postOnceWithLogs(url1, form).catch(async () => {
+        console.log('[OCR][RETRY] switching to trailing slash');
+        return postOnceWithLogs(url2, form);
+      });
 
-      // 5) 결과 정규화 → medications 화면으로 이동
-      const meds = Array.isArray(data.medicines) ? data.medicines : [];
+      if (data?.error) throw new Error(data.error);
+
+      const meds = Array.isArray(data?.medicines) ? data.medicines : [];
       const rows = meds.map(normalizeMedication).filter(r => r.name.trim().length > 0);
 
       router.replace({
@@ -153,16 +207,11 @@ export default function OCRProcessingScreen() {
         },
       });
     } catch (e: any) {
-      const msg =
-        (e?.response?.data?.message) ||
-        (e?.response?.data?.error) ||
-        e?.message ||
-        '이미지 인식에 실패했어요. 직접 입력해 주세요.';
       router.replace({
         pathname: '/medications',
         params: {
           rows: JSON.stringify(makeEmptyRows()),
-          error: String(msg),
+          error: e?.message ?? '이미지 인식에 실패했어요. 직접 입력해 주세요.',
         },
       });
     }
@@ -171,7 +220,7 @@ export default function OCRProcessingScreen() {
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" />
-      <Text style={styles.statusText}>약 봉투/처방전 인식 중…</Text>
+      <Text style={styles.statusText}>처방전 인식 중…</Text>
       <Text style={styles.subText}>인식 결과가 없으면 직접 입력 화면으로 이동합니다.</Text>
     </View>
   );
@@ -190,7 +239,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     marginTop: 12,
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: '600',
     color: colors.textPrimary,
   },
