@@ -1,53 +1,83 @@
-// app/utils/user.ts
+// app/_utils/user.ts
 import * as SecureStore from 'expo-secure-store';
 import { getUserId } from './auth';
 
-/**
- * 로컬 저장 키를 사용자별로 스코프링
- * - 동일 단말에 여러 계정이 로그인했던 이력이 있어도 혼동 방지
- */
-const makeRoleKey = (userId: string) => `role:${userId}`;
+export type UserRole = 'senior' | 'caregiver';
 
-/** 타입: 앱에서 쓰기 편하도록 문자열 역할도 노출 */
-export type UserRole = 'elderly' | 'caregiver';
+// 불리언 ↔ 역할 문자열
+const toRoleString = (isElderly: boolean): UserRole => (isElderly ? 'senior' : 'caregiver');
+const toBoolean = (role: UserRole | string | null): boolean => role === 'senior';
 
-/** 불리언 ↔ 문자열 매핑 헬퍼 */
-const toRoleString = (isElderly: boolean): UserRole =>
-  isElderly ? 'elderly' : 'caregiver';
-const toBoolean = (role: UserRole | string | null): boolean =>
-  role === 'elderly';
+// ⚠️ SecureStore 키는 영문/숫자/".", "-", "_" 만 허용
+// 사용자 ID에 허용되지 않는 문자가 있으면 "_"로 치환
+const sanitizeKeyPart = (s: string) => s.replace(/[^A-Za-z0-9._-]/g, '_');
 
-/**
- * 사용자 역할 저장 (디바이스 로컬)
- * - isElderly: true(고령자), false(보호자)
- * - 서버 저장/동기화 없음
- */
-export async function setUserRoleLocal(isElderly: boolean): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) throw new Error('로그인이 필요합니다.');
-  const key = makeRoleKey(userId);
-  await SecureStore.setItemAsync(key, toRoleString(isElderly));
+// ✅ 콜론(:) 제거
+const ROLE_GLOBAL_KEY = 'role_global';
+const makeRoleKey = (userId: string) => `role_${sanitizeKeyPart(userId)}`;
+
+/** ---------------------------------------
+ * 1) 디바이스 전역 역할 (로그인 전에도 사용)
+ * -------------------------------------- */
+export async function setRoleGlobal(isElderly: boolean): Promise<void> {
+  await SecureStore.setItemAsync(ROLE_GLOBAL_KEY, toRoleString(isElderly));
 }
 
-/** 현재 사용자 역할 조회 (디바이스 로컬) */
-export async function getUserRoleLocal(): Promise<UserRole | null> {
-  const userId = await getUserId();
-  if (!userId) throw new Error('로그인이 필요합니다.');
-  const key = makeRoleKey(userId);
-  const v = await SecureStore.getItemAsync(key);
+export async function getRoleGlobal(): Promise<UserRole | null> {
+  const v = await SecureStore.getItemAsync(ROLE_GLOBAL_KEY);
   return (v as UserRole | null) ?? null;
 }
 
-/** 현재 사용자 역할이 고령자인지 여부(boolean) */
+export async function isElderlyGlobal(): Promise<boolean | null> {
+  const role = await getRoleGlobal();
+  return role ? toBoolean(role) : null;
+}
+
+export async function clearRoleGlobal(): Promise<void> {
+  await SecureStore.deleteItemAsync(ROLE_GLOBAL_KEY);
+}
+
+/** ---------------------------------------
+ * 2) 사용자별 역할 (로그인 이후 사용)
+ * -------------------------------------- */
+export async function setUserRoleLocal(isElderly: boolean): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) throw new Error('로그인이 필요합니다.');
+  await SecureStore.setItemAsync(makeRoleKey(userId), toRoleString(isElderly));
+}
+
+export async function getUserRoleLocal(): Promise<UserRole | null> {
+  const userId = await getUserId();
+  if (!userId) throw new Error('로그인이 필요합니다.');
+  const v = await SecureStore.getItemAsync(makeRoleKey(userId));
+  return (v as UserRole | null) ?? null;
+}
+
 export async function isElderlyLocal(): Promise<boolean> {
   const role = await getUserRoleLocal();
   return toBoolean(role);
 }
 
-/** 현재 사용자 역할 삭제 (로그아웃 시 등) */
 export async function clearUserRoleLocal(): Promise<void> {
   const userId = await getUserId();
   if (!userId) return;
-  const key = makeRoleKey(userId);
-  await SecureStore.deleteItemAsync(key);
+  await SecureStore.deleteItemAsync(makeRoleKey(userId));
+}
+
+/** ---------------------------------------
+ * 3) 우선순위: 사용자별 > 전역 > null
+ * -------------------------------------- */
+export async function getEffectiveRole(): Promise<UserRole | null> {
+  try {
+    const userScoped = await getUserRoleLocal(); // 로그인 전이면 throw
+    if (userScoped) return userScoped;
+  } catch {
+    // 로그인 전이면 무시
+  }
+  return await getRoleGlobal();
+}
+
+export async function isElderlyEffective(): Promise<boolean | null> {
+  const role = await getEffectiveRole();
+  return role ? toBoolean(role) : null;
 }

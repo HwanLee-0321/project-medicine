@@ -1,107 +1,51 @@
+// app/features/caregiver/components/FunctionMain.tsx
 import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Image,
   Dimensions,
   ScrollView,
-  TextInput,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { LineChart } from 'react-native-chart-kit';
-import { useRouter } from 'expo-router';  // expo-router import
-
-// 외부 컴포넌트 임포트 (경로 맞게 조정)
-import CalendarTab from '../../../Calendar';
-import MedicationTimeTab from './MedicationTime';
-import NotificationSettingTab from './NotificationSetting';
-
-// 로그인 화면 컴포넌트 (TextInput 사용, 아이디는 읽기전용)
-function LoginScreen({ userId, onLoginSuccess, onBack }) {
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleLogin = () => {
-    if (password.length < 4) {
-      setError('비밀번호를 4자 이상 입력하세요');
-      return;
-    }
-    setError('');
-    if (password === '1234') {
-      onLoginSuccess();
-    } else {
-      setError('비밀번호가 올바르지 않습니다.');
-    }
-  };
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={{ width: '100%', alignItems: 'center' }}>
-          <Text style={styles.title}>로그인</Text>
-          <Text style={{ marginBottom: 8 }}>아이디</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: '#eee' }]}
-            value={userId}
-            editable={false}
-          />
-          <Text style={{ marginTop: 20, marginBottom: 8 }}>비밀번호</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="비밀번호 입력"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <TouchableOpacity style={[styles.card, styles.blueCard, { marginTop: 20, width: '80%', height: 50, justifyContent: 'center' }]} onPress={handleLogin}>
-            <Text style={styles.cardText}>로그인</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={onBack} style={{ marginTop: 20 }}>
-            <Text style={{ color: '#2196F3' }}>뒤로가기</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
-  );
-}
+import { useRouter } from 'expo-router';
 
 export default function FunctionMain() {
-  const router = useRouter();  // router 사용
+  const router = useRouter();
   const [mainTab, setMainTab] = useState<'dashboard' | 'function'>('function');
-  const [activeFunctionTab, setActiveFunctionTab] = useState<
-    'home' | 'calendar' | 'medTime' | 'notification' | 'other' | 'login'
-  >('home');
 
-  const [savedUserId, setSavedUserId] = useState('minho25'); // 예시 저장 아이디
-
-  // 로그인 성공 후 역할선택 페이지로 이동
-  const onLoginSuccess = () => {
-    router.push('/role');  // role.tsx 페이지로 이동
-  };
-
+  // ✅ 상단 탭 + 설정 버튼
   const renderTopTabs = () => (
-    <View style={styles.tabContainer}>
+    <View style={styles.topBar}>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, mainTab === 'dashboard' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setMainTab('dashboard')}
+        >
+          <Text style={mainTab === 'dashboard' ? styles.activeTabText : styles.inactiveTabText}>
+            대시보드
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, mainTab === 'function' ? styles.activeTab : styles.inactiveTab]}
+          onPress={() => setMainTab('function')}
+        >
+          <Text style={mainTab === 'function' ? styles.activeTabText : styles.inactiveTabText}>
+            기능
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ⚙️ 설정 버튼 */}
       <TouchableOpacity
-        style={[styles.tab, mainTab === 'dashboard' ? styles.activeTab : styles.inactiveTab]}
-        onPress={() => setMainTab('dashboard')}
+        style={styles.settingsButton}
+        onPress={() => {
+          setMainTab('function');
+        }}
       >
-        <Text style={mainTab === 'dashboard' ? styles.activeTabText : styles.inactiveTabText}>대시보드</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tab, mainTab === 'function' ? styles.activeTab : styles.inactiveTab]}
-        onPress={() => setMainTab('function')}
-      >
-        <Text style={mainTab === 'function' ? styles.activeTabText : styles.inactiveTabText}>기능</Text>
+        <Text style={{ fontSize: 20, color: '#333' }}>⚙️</Text>
       </TouchableOpacity>
     </View>
   );
@@ -146,8 +90,8 @@ export default function FunctionMain() {
       </View>
 
       <View style={styles.alertBox}>
-        <Text style={styles.alertText}>⚠️ 미복약 알림</Text>
-        <Text style={styles.alertSubText}>8월 6일 아침약 미복용</Text>
+        <Text style={styles.alertText}>⚠️ 미복약ss 알림</Text>
+        <Text style={styles.alertSubText}>8월 6일 아침약 미d복용</Text>
       </View>
       <View style={styles.alertBox}>
         <Text style={styles.alertText}>🚨 이상징후 감지</Text>
@@ -172,80 +116,75 @@ export default function FunctionMain() {
       <Text style={[styles.title, { marginBottom: 30 }]}>기능 화면</Text>
 
       <View style={styles.cardContainer}>
+        {/* 복약/시간설정 */}
         <TouchableOpacity
           style={[styles.card, styles.blueCard]}
-          onPress={() => setActiveFunctionTab('medTime')}
+          onPress={() => router.push('/features/caregiver/components/MedicationTime')}
         >
           <Text style={styles.cardText}>복약/시간설정</Text>
         </TouchableOpacity>
 
+        {/* 이력 데이터 확인 */}
         <TouchableOpacity
           style={[styles.card, styles.redCard]}
-          onPress={() => setActiveFunctionTab('calendar')}
+          onPress={() => router.push('/Calendar')}
         >
           <Text style={styles.cardText}>이력 데이터 확인</Text>
         </TouchableOpacity>
 
+        {/* 알림 설정 */}
         <TouchableOpacity
           style={[styles.card, styles.yellowCard]}
-          onPress={() => setActiveFunctionTab('notification')}
+          onPress={() => router.push('/features/caregiver/components/NotificationSetting')}
         >
           <Text style={[styles.cardText, { color: '#000' }]}>알림 설정</Text>
         </TouchableOpacity>
 
+        {/* 역할 선택 */}
         <TouchableOpacity
           style={[styles.card, styles.greenCard]}
-          onPress={() => setActiveFunctionTab('login')}
+          onPress={() => router.push('/features/caregiver/components/roleSelect')}
         >
           <Text style={styles.cardText}>역할 선택</Text>
+        </TouchableOpacity>
+
+        {/* 로그인 */}
+        <TouchableOpacity
+          style={[styles.card, { backgroundColor: '#9C27B0' }]}
+          onPress={() => router.push('/features/caregiver/components/login')}
+        >
+          <Text style={styles.cardText}>로그인</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
   );
-
-  const renderFunctionTabContent = () => {
-    switch (activeFunctionTab) {
-      case 'calendar':
-        return <CalendarTab />;
-      case 'medTime':
-        return <MedicationTimeTab />;
-      case 'notification':
-        return <NotificationSettingTab />;
-      case 'login':
-        return (
-          <LoginScreen
-            userId={savedUserId}
-            onLoginSuccess={onLoginSuccess}
-            onBack={() => setActiveFunctionTab('home')}
-          />
-        );
-      case 'other':
-        return (
-          <View style={styles.container}>
-            <Text style={styles.title}>기타 기능 화면</Text>
-          </View>
-        );
-      default:
-        return renderFunctionHome();
-    }
-  };
 
   return (
     <View style={{ flex: 1 }}>
       {renderTopTabs()}
       <View style={{ flex: 1 }}>
         {mainTab === 'dashboard' && renderDashboard()}
-        {mainTab === 'function' && renderFunctionTabContent()}
+        {mainTab === 'function' && renderFunctionHome()}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  tabContainer: {
+  topBar: {
     flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    backgroundColor: '#fff',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  settingsButton: {
+    padding: 10,
+  },
+  tabContainer: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
   },
   tab: {
@@ -258,7 +197,6 @@ const styles = StyleSheet.create({
   activeTab: {
     borderBottomColor: '#2196F3',
   },
-  inactiveTab: {},
   activeTabText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -269,6 +207,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#555',
   },
+  inactiveTab: {},
 
   container: {
     flex: 1,
@@ -310,18 +249,9 @@ const styles = StyleSheet.create({
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 10 },
   profileText: { fontSize: 16 },
 
-  chartContainer: {
-    marginBottom: 20,
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    color: '#000',
-  },
-  chart: {
-    borderRadius: 10,
-  },
+  chartContainer: { marginBottom: 20 },
+  chartTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 6, color: '#000' },
+  chart: { borderRadius: 10 },
 
   alertBox: {
     backgroundColor: '#fffbe6',
@@ -331,31 +261,6 @@ const styles = StyleSheet.create({
     padding: 12,
     marginTop: 10,
   },
-  alertText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  alertSubText: {
-    fontSize: 15,
-    color: '#555',
-  },
-
-  input: {
-    width: '80%',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#000',
-  },
-  error: {
-    color: 'red',
-    marginTop: 8,
-    textAlign: 'center',
-  },
+  alertText: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 4 },
+  alertSubText: { fontSize: 15, color: '#555' },
 });

@@ -1,11 +1,18 @@
-// app/index.tsx (또는 현재 파일 경로에 맞게)
-import React, { useMemo, useRef, useState } from 'react';
+// app/index.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Text, StyleSheet, Platform, TextInput, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer, FormInput, PasswordInput, PrimaryButton, TextLink } from './_components';
 import { colors } from '../styles/colors';
-import { login } from './_utils/auth';
+import { login, isLoggedIn } from './_utils/auth';
+import { getEffectiveRole } from './_utils/user';
 import { getErrorMessage } from './_utils/api';
+import { hasMealTime } from './_utils/medication';
+
+const ELDERLY_HOME = '/features/senior';
+const CAREGIVER_HOME = '/features/caregiver';
+const ROLE_SCREEN = '/role';
+const SETUP_SCREEN = '/setup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -13,6 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [booting, setBooting] = useState(true);
 
   const idRef = useRef<TextInput>(null);
   const pwRef = useRef<TextInput>(null);
@@ -22,22 +30,88 @@ export default function LoginScreen() {
     [id, password]
   );
 
+  /** 공통 라우팅: 역할 → 복약시간 순으로 분기 */
+  const routeWithRoleAndMealTime = async () => {
+    try {
+      const role = await getEffectiveRole(); // 사용자별 > 전역 > null
+      if (role === 'senior') {
+        router.replace(ELDERLY_HOME);
+        return;
+      }
+      if (role === 'caregiver') {
+        router.replace(CAREGIVER_HOME);
+        return;
+      }
+
+      // 역할이 없으면 복약 시간 설정 여부 확인
+      const has = await hasMealTime();
+      if (has) {
+        router.replace(ROLE_SCREEN); // 역할만 선택
+      } else {
+        router.replace(SETUP_SCREEN); // 먼저 복약 시간 설정
+      }
+    } catch (e) {
+      // 라우팅 단계 에러는 로그인 실패와 구분
+      console.warn('[Route] error:', e);
+      throw e;
+    }
+  };
+
+  /** 부팅 시: 이미 로그인되어 있으면 바로 분기 */
+  useEffect(() => {
+    (async () => {
+      try {
+        const loggedIn = await isLoggedIn();
+        if (loggedIn) {
+          await routeWithRoleAndMealTime();
+          return;
+        }
+      } catch (e) {
+        console.warn('[Boot] route error:', e);
+      } finally {
+        setBooting(false);
+      }
+    })();
+  }, []);
+
+  /** 로그인 처리 (로그인 에러와 라우팅 에러를 분리) */
   const handleLogin = async () => {
     if (!canSubmit || busy) {
       Alert.alert('아이디와 비밀번호를 입력해주세요.');
       return;
     }
+
+    setBusy(true);
+
+    // 1) 로그인만 먼저
     try {
-      setBusy(true);
       await login({ id: id.trim(), password });
-      // 로그인 성공 시 이동 (필요 경로로 변경 가능)
-      router.replace('/setup');
+      console.log('[Login] OK');
     } catch (e) {
+      console.warn('[Login] error:', e);
       Alert.alert(getErrorMessage(e, '로그인에 실패했어요.'));
+      setBusy(false);
+      return; // 로그인 실패면 여기서 종료
+    }
+
+    // 2) 라우팅(역할/복약시간) 단계
+    try {
+      await routeWithRoleAndMealTime();
+    } catch (e) {
+      console.warn('[Route after login] error:', e);
+      Alert.alert(getErrorMessage(e, '로그인 후 이동 중 문제가 발생했어요.'));
     } finally {
       setBusy(false);
     }
   };
+
+  if (booting) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   return (
     <ScreenContainer keyboardOffset={Platform.select({ ios: 24, android: 0 }) as number}>
@@ -94,10 +168,11 @@ export default function LoginScreen() {
 
         <TextLink title="회원가입" onPress={() => router.push('/signup')} />
 
-        <TouchableOpacity onPress={() => router.push('/features/senior')} disabled={busy}>
+        {/* 개발 편의용 빠른 이동 버튼(원하면 제거) */}
+        <TouchableOpacity onPress={() => router.push(ELDERLY_HOME)} disabled={busy}>
           <Text>고령자로 이동</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/features/caregiver')} disabled={busy}>
+        <TouchableOpacity onPress={() => router.push(CAREGIVER_HOME)} disabled={busy}>
           <Text>보호자로 이동</Text>
         </TouchableOpacity>
       </View>

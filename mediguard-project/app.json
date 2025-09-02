@@ -16,7 +16,8 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.jinsol_1207.mediguardproject",
-      "softwareKeyboardLayoutMode": "pan"
+      "softwareKeyboardLayoutMode": "resize",
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -53,7 +54,8 @@
       "eas": {
         "projectId": "8492514e-90a7-4ed8-ab01-dd7e06ec2d54"
       },
-      "baseURL": "http://221.142.148.73:10005"
+      "baseURL": "http://192.168.111.218:3000",
+      "ocrBaseURL": "http://192.168.111.218:8000"
     }
   }
 }
