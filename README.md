@@ -1,5 +1,7 @@
 # MediGuard: AI-Powered Medication Management Solution
 
+Read this in other languages: [🇰🇷 한국어](./docs/README.ko.md) | [🇨🇳 中文](./docs/README.zh.md) | [🇯🇵 日本語](./docs/README.ja.md) | [🇫🇷 Français](./docs/README.fr.md) | [🇪🇸 Español](./docs/README.es.md) | [🇩🇪 Deutsch](./docs/README.de.md) | [🇸🇦 العربية](./docs/README.ar.md)
+
 **MediGuard** is a comprehensive, mobile-first healthcare solution designed to simplify medication management for both seniors and their caregivers. Leveraging the power of AI, the application automates the tedious process of tracking prescriptions, managing schedules, and sending timely reminders.
 
 The system consists of two main components:
@@ -92,7 +94,7 @@ The user journey is designed to be seamless and intuitive:
 
 ```bash
 # 1. Navigate to the OCR server directory
-cd ocr-server/
+cd ocr/
 
 # 2. Install Python dependencies
 pip install -r requirements.txt
@@ -108,7 +110,7 @@ uvicorn main:app --reload
 
 ```bash
 # 1. Navigate to the React Native project directory
-cd mediguard-app/
+cd mediguard-project/
 
 # 2. Install Node.js dependencies
 npm install
@@ -118,3 +120,6 @@ npx expo start
 ```
 
 Scan the QR code with the Expo Go app on your phone to run the application.
+
+-----
+
