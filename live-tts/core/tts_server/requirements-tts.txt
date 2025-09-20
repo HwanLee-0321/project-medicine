@@ -1,0 +1,10 @@
+# requirements.txt for TTS Server
+fastapi
+uvicorn
+torch
+scikit-learn
+scipy
+numpy==2.2.4
+protobuf==3.19.6
+descript-audio-codec
+git+https://github.com/huggingface/transformers.git

@@ -1,0 +1,4 @@
+# requirements.txt for Gemini Server
+fastapi
+uvicorn
+google-generativeai

@@ -1,0 +1,40 @@
+# 1. 베이스 이미지 선택
+FROM nvidia/cuda:12.1.1-base-ubuntu22.04
+
+# 2. 작업 디렉토리 설정
+WORKDIR /app
+
+# 3. 시스템 패키지 설치 및 업데이트
+# MeloTTS와 호환되는 Python 3.10 (Ubuntu 22.04 기본) 및 관련 도구를 설치합니다.
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        python3.10 \
+        python3-pip \
+        git \
+        libsndfile1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# 4. MeloTTS 소스 코드 다운로드 및 설치 (공식 가이드 기반)
+RUN git clone https://github.com/myshell-ai/MeloTTS.git
+# 작업 디렉토리를 복제된 MeloTTS 폴더로 변경합니다.
+WORKDIR /app/MeloTTS
+# PyTorch와 TorchAudio를 CUDA 12.1 버전에 맞춰 먼저 설치합니다.
+RUN python3 -m pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+# 소스 코드를 기반으로 MeloTTS와 모든 의존성 패키지를 설치합니다.
+RUN python3 -m pip install --no-cache-dir -e .
+# 일본어 사전을 다운로드합니다.
+RUN python3 -m unidic download
+
+# 5. FastAPI 서버를 위한 파일 준비
+# 작업 디렉토리를 다시 상위 폴더로 변경합니다.
+WORKDIR /app
+# 서버 실행에 필요한 tts_server.py 파일을 컨테이너로 복사합니다.
+COPY tts_server.py .
+# FastAPI와 Uvicorn 등 서버 실행에 필요한 패키지를 설치합니다.
+RUN python3 -m pip install --no-cache-dir fastapi uvicorn soundfile
+
+# 6. 포트 노출
+EXPOSE 8002
+
+# 7. 서버 실행 명령어
+CMD ["python3", "-m", "uvicorn", "tts_server:app", "--host", "0.0.0.0", "--port", "8002"]

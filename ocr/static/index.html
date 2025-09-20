@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini OCR</title>
+    <!-- 마크다운 렌더링을 위한 'marked' 라이브러리를 CDN으로 불러옵니다. -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* 기본 스타일: 시스템 폰트 사용, 중앙 정렬 레이아웃 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 40px 20px; /* 상하 40px, 좌우 20px 패딩으로 콘텐츠 영역 확보 */
+            background-color: #f8f9fa; /* 부드러운 회색 배경 */
+            color: #343a40; /* 가독성 높은 진한 회색 텍스트 */
+        }
+        /* 콘텐츠를 감싸는 컨테이너: 최대 너비를 800px로 제한하여 가독성 향상 */
+        .container {
+            width: 100%;
+            max-width: 800px;
+        }
+        /* 페이지 제목 스타일 */
+        h1 {
+            color: #495057;
+            text-align: center; /* 제목 중앙 정렬 */
+        }
+        /* 파일 업로드 섹션: 점선 테두리로 시각적 구분 */
+        .upload-section {
+            border: 2px dashed #adb5bd;
+            padding: 30px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column; /* 내부 요소들을 세로로 정렬 */
+            align-items: center;   /* 내부 요소들을 가로축 중앙에 정렬 */
+        }
+        /* 버튼 그룹: 갤러리/카메라 버튼을 묶고 간격 설정 */
+        .button-group {
+            display: flex;
+            gap: 15px; /* 버튼 사이의 간격 */
+            margin-bottom: 20px;
+        }
+        /* 기본 버튼 스타일 */
+        button {
+            padding: 12px 25px; /* 넉넉한 패딩으로 클릭 영역 확보 */
+            border: none;
+            background-color: #007bff; /* 파란색 기본 버튼 */
+            color: white;
+            border-radius: 8px; /* 부드러운 모서리 */
+            cursor: pointer;
+            transition: background-color 0.2s; /* 부드러운 색상 전환 효과 */
+            font-size: 1em;
+        }
+        /* 마우스 호버 시 버튼 색상 변경 */
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* 보조 버튼 스타일 (회색) */
+        button.secondary {
+            background-color: #6c757d;
+        }
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+        /* 비활성화된 버튼 스타일 */
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        /* 실제 파일 입력(input)은 숨김 처리 (버튼으로 제어) */
+        #file-input {
+            display: none;
+        }
+        /* 이미지/비디오 미리보기 컨테이너 */
+        #preview-container {
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        #preview {
+            max-width: 100%;
+            max-height: 400px; /* 미리보기 이미지 최대 높이 제한 */
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        /* 카메라 스트리밍 비디오 컨테이너 (초기에는 숨김) */
+        #video-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        #video {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        /* 결과 표시 영역 Wrapper */
+        #result-wrapper {
+            width: 100%;
+        }
+        h2 {
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        /* OCR 결과 텍스트가 표시될 컨테이너 */
+        #result-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            background-color: #ffffff;
+            border-radius: 5px;
+            min-height: 100px;
+            word-wrap: break-word; /* 긴 단어가 영역을 벗어나지 않도록 자동 줄바꿈 */
+            white-space: pre-wrap; /* 공백과 줄바꿈을 원본 텍스트대로 유지 */
+        }
+        /* 로딩 인디케이터 (초기에는 숨김) */
+        #loader {
+            display: none;
+            margin-top: 20px;
+            font-size: 1.2em;
+            color: #007bff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini OCR</h1>
+        
+        <div class="upload-section">
+            <!-- 파일 선택을 위한 숨겨진 input 요소. accept="image/*"로 이미지 파일만 선택 가능 -->
+            <input type="file" id="file-input" accept="image/*">
+            
+            <!-- 사용자에게 보여질 버튼 그룹 -->
+            <div class="button-group">
+                <button id="gallery-btn">갤러리에서 선택</button>
+                <button id="camera-btn">카메라로 촬영</button>
+            </div>
+
+            <!-- 카메라 촬영 시 영상이 표시될 영역 -->
+            <div id="video-container">
+                <video id="video" autoplay playsinline></video>
+                <button id="capture-btn">촬영하기</button>
+            </div>
+
+            <!-- 갤러리에서 선택하거나 촬영한 이미지의 미리보기를 표시할 영역 -->
+            <div id="preview-container">
+                <img id="preview" src="" alt="Image preview">
+            </div>
+            
+            <!-- 파일이 선택되어야 활성화되는 텍스트 추출 버튼 -->
+            <button id="submit-btn" disabled>텍스트 추출</button>
+        </div>
+        
+        <!-- API 요청 시 활성화될 로딩 인디케이터 -->
+        <div id="loader">처리 중...</div>
+
+        <!-- OCR 결과가 표시될 전체 영역 -->
+        <div id="result-wrapper">
+            <h2>추출된 텍스트:</h2>
+            <div id="result-container"></div>
+        </div>
+    </div>
+
+    <!-- 기능 구현을 위한 JavaScript 파일 연결 -->
+    <script src="/static/script.js"></script>
+</body>
+</html>

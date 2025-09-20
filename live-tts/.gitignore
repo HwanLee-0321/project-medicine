@@ -1,0 +1,5 @@
+node_modules/*
+core/__pycache__
+core/tts_server/.venv_tts
+core/gemini_server/.venv_gemini
+.env

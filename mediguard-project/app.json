@@ -1,0 +1,61 @@
+{
+  "expo": {
+    "name": "mediguard-project",
+    "slug": "mediguard-project",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "mediguardproject",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.jinsol_1207.mediguardproject",
+      "softwareKeyboardLayoutMode": "resize",
+      "usesCleartextTraffic": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "마이크 사용을 허용해주세요.",
+          "speechRecognitionPermission": "음성 인식을 허용해주세요.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8492514e-90a7-4ed8-ab01-dd7e06ec2d54"
+      },
+      "baseURL": "http://192.168.111.218:3000",
+      "ocrBaseURL": "http://192.168.111.218:8000"
+    }
+  }
+}

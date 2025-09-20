@@ -1,0 +1,39 @@
+# 1. 베이스 이미지 선택 (CUDA 12.1 + Ubuntu 22.04)
+FROM nvidia/cuda:12.1.1-base-ubuntu22.04
+
+# 2. 작업 디렉토리 설정
+WORKDIR /app
+
+# 3. 시스템 패키지 설치
+# MeloTTS와 호환되는 Python 3.10 (Ubuntu 22.04 기본) 및 관련 도구를 설치합니다.
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        python3.10 \
+        python3-pip \
+        git \
+        libsndfile1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# 4. Python 의존성 설치
+# PyTorch와 TorchAudio를 CUDA 12.1 버전에 맞춰 먼저 설치합니다.
+RUN python3 -m pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# --- ✨ 수정된 부분 ✨ ---
+# GitHub 저장소의 실제 패키지 이름인 'melotts' (하이픈 없음)로 수정합니다.
+RUN python3 -m pip install --no-cache-dir "melotts @ git+https://github.com/myshell-ai/MeloTTS.git"
+# FastAPI 서버 구동에 필요한 라이브러리를 설치합니다.
+RUN python3 -m pip install --no-cache-dir fastapi uvicorn soundfile
+# 일본어 사전을 다운로드합니다. (MeloTTS 설치 과정에 필요)
+RUN python3 -m unidic download
+
+# 5. 서버 코드 복사
+# 작성한 app.py 파일을 컨테이너 안으로 복사합니다.
+COPY app.py .
+
+# 6. 포트 노출
+# 컨테이너의 8080 포트를 외부에 개방합니다.
+EXPOSE 8080
+
+# 7. 서버 실행 명령어
+# 컨테이너가 시작될 때 Uvicorn 서버를 실행합니다.
+CMD ["python3", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]

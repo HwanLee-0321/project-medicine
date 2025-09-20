@@ -1,0 +1,16 @@
+name: dev
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - fastapi
+  - uvicorn
+  - python-dotenv
+  - httptools
+  - websockets
+  - watchfiles
+  - pip
+  - pip:
+    - google-generativeai
+    - python-multipart
